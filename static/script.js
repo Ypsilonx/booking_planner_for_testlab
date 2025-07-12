@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const modalForm = document.getElementById('booking-form');
     const addTestButton = document.getElementById('add-test-button');
 
+    let allEquipmentData = [];
     let allEquipmentRows = [];
     let allBookings = [];
     let yearDates = [];
@@ -51,25 +52,29 @@ document.addEventListener('DOMContentLoaded', function() {
             const response = await fetch('/api/data');
             if (!response.ok) throw new Error(`Chyba při načítání dat: ${response.statusText}`);
             const data = await response.json();
-            allEquipmentRows = [];
-            if (data.equipment && data.equipment.length > 0) {
-                data.equipment.forEach(parentEquip => {
-                    const sideCount = parentEquip.sides || 1;
-                    if (sideCount > 1) {
-                        for (let i = 1; i <= sideCount; i++) {
-                            allEquipmentRows.push({ id: `${parentEquip.name} - Prostor ${i}`, name: `${parentEquip.name} - Prostor ${i}`, status: parentEquip.status });
-                        }
-                    } else {
-                        allEquipmentRows.push({ id: parentEquip.name, name: parentEquip.name, status: parentEquip.status });
-                    }
-                });
-            }
+            
+            allEquipmentData = data.equipment || [];
             allBookings = data.bookings || [];
+            allEquipmentRows = [];
+
+            allEquipmentData.forEach(parentEquip => {
+                const sideCount = parentEquip.sides || 1;
+                if (parentEquip.name.includes('TisNg Hybrid') && sideCount > 1) {
+                    allEquipmentRows.push({ id: `${parentEquip.name} - Prostor 1`, name: `${parentEquip.name} - Prostor 1`, status: parentEquip.status, max_tests: parentEquip.max_tests, base_name: parentEquip.name });
+                    allEquipmentRows.push({ id: `${parentEquip.name} - PNEUMATIKA`, name: `${parentEquip.name} - PNEUMATIKA`, status: parentEquip.status, max_tests: parentEquip.max_tests, base_name: parentEquip.name });
+                } else if (sideCount > 1) {
+                    for (let i = 1; i <= sideCount; i++) {
+                        allEquipmentRows.push({ id: `${parentEquip.name} - Prostor ${i}`, name: `${parentEquip.name} - Prostor ${i}`, status: parentEquip.status, max_tests: parentEquip.max_tests, base_name: parentEquip.name });
+                    }
+                } else {
+                    allEquipmentRows.push({ id: parentEquip.name, name: parentEquip.name, status: parentEquip.status, max_tests: parentEquip.max_tests, base_name: parentEquip.name });
+                }
+            });
         } catch (error) { console.error("Nepodařilo se načíst data:", error); alert("Chyba při komunikaci se serverem."); }
     }
 
     async function updateBookingOnServer(bookingData) { const response = await fetch(`/api/bookings/${bookingData.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(bookingData), }); if (!response.ok) { alert('Chyba: Rezervace se překrývá s jinou, byla překročena kapacita, nebo nastala jiná chyba.'); return false; } return true; }
-    async function createBookingOnServer(bookingData) { const response = await fetch('/api/bookings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(bookingData), }); if (!response.ok) { alert('Chyba: Rezervace se překrývá s jinou, byla překročena kapacita, nebo nastala jiná chyba.'); return null; } return await response.json(); }
+    async function createBookingOnServer(bookingData) { const response = await fetch('/api/bookings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(bookingData), }); if (!response.ok) { return null; } return await response.json(); }
     async function deleteBookingOnServer(bookingId) { const response = await fetch(`/api/bookings/${bookingId}`, { method: 'DELETE' }); if (!response.ok) { alert('Chyba při mazání rezervace.'); return false; } return true; }
 
     function render() {
@@ -97,6 +102,13 @@ document.addEventListener('DOMContentLoaded', function() {
             nameSpan.textContent = equipRow.name;
             item.appendChild(statusDot);
             item.appendChild(nameSpan);
+
+            if (equipRow.max_tests) {
+                const maxTestsSpan = document.createElement('span');
+                maxTestsSpan.className = 'max-tests-info';
+                maxTestsSpan.textContent = `(max ${equipRow.max_tests})`;
+                item.appendChild(maxTestsSpan);
+            }
             equipmentSidebar.appendChild(item);
         });
 
@@ -105,7 +117,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const fragment = document.createDocumentFragment();
         const today = normalizeDate(new Date());
-        
         yearDates.forEach(date => {
             const dateHeader = document.createElement('div');
             dateHeader.className = 'date-header';
@@ -114,7 +125,6 @@ document.addEventListener('DOMContentLoaded', function() {
             dateHeader.innerHTML = `<span>${date.getUTCDate()}.${date.getUTCMonth() + 1}.</span><span class="day-name">${date.toLocaleDateString('cs-CZ', { weekday: 'short' })}</span>`;
             fragment.appendChild(dateHeader);
         });
-
         let totalCells = 0;
         allEquipmentRows.forEach(() => totalCells += yearDates.length);
         for (let i = 0; i < totalCells; i++) {
@@ -126,20 +136,16 @@ document.addEventListener('DOMContentLoaded', function() {
             fragment.appendChild(cell);
         }
         gridElement.appendChild(fragment);
-
         renderBookings();
     }
 
     function renderBookings() {
         gridElement.querySelectorAll('.booking-bar').forEach(el => el.remove());
         if (yearDates.length === 0) return;
-        
         const firstDate = yearDates[0];
         let cumulativeTop = HEADER_HEIGHT;
-
         allEquipmentRows.forEach((equip, equipIndex) => {
             const equipmentBookings = allBookings.filter(b => b.equipment_id === equip.id);
-            
             equipmentBookings.forEach(booking => {
                 const laneIndex = booking.lane !== undefined ? booking.lane : 0;
                 const bookingTopOffset = laneIndex * LANE_HEIGHT + (LANE_HEIGHT * 0.1);
@@ -147,9 +153,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const bookingEnd = normalizeDate(new Date(booking.end_date));
                 const startIndex = diffInDays(firstDate, bookingStart);
                 const durationDays = diffInDays(bookingStart, bookingEnd) + 1;
-
                 if (startIndex < -durationDays || startIndex >= yearDates.length) return;
-
                 const bookingBar = document.createElement('div');
                 bookingBar.className = 'booking-bar';
                 bookingBar.textContent = booking.description;
@@ -166,46 +170,149 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // --- ZMĚNA ZDE: Nová logika pro zobrazení formuláře ---
     function showModal(booking = null) {
         modalForm.reset();
         const equipSelect = document.getElementById('booking-equip');
-        equipSelect.innerHTML = allEquipmentRows.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
+        const bothSpacesContainer = document.getElementById('both-spaces-container');
+        const yearSpan = document.getElementById('eusuva-year');
+        const currentYear = new Date().getFullYear().toString().slice(-2);
+        yearSpan.textContent = `-${currentYear}`;
+
+        const euSvaInput = document.getElementById('booking-eusuva');
+        const projectInput = document.getElementById('booking-project');
+        const startDateInput = document.getElementById('booking-start');
+        const endDateInput = document.getElementById('booking-end');
+        const bothSpacesCheckbox = document.getElementById('booking-both-spaces');
+        const submitButton = modalForm.querySelector('button[type="submit"]');
+
+        equipSelect.innerHTML = allEquipmentData.map(e => `<option value="${e.name}">${e.name}</option>`).join('');
+
+        const handleEquipChange = () => {
+            const selectedEquipName = equipSelect.value;
+            const selectedEquipData = allEquipmentData.find(e => e.name === selectedEquipName);
+            if (selectedEquipData && selectedEquipData.sides > 1) {
+                bothSpacesContainer.style.display = 'flex';
+            } else {
+                bothSpacesContainer.style.display = 'none';
+                bothSpacesCheckbox.checked = false;
+            }
+        };
+        
+        equipSelect.removeEventListener('change', handleEquipChange);
+        equipSelect.addEventListener('change', handleEquipChange);
+
         if (booking) {
-            document.getElementById('modal-title').textContent = 'Editovat rezervaci';
-            document.getElementById('booking-id').value = booking.id;
-            document.getElementById('booking-desc').value = booking.description;
-            equipSelect.value = booking.equipment_id;
-            document.getElementById('booking-start').value = booking.start_date;
-            document.getElementById('booking-end').value = booking.end_date;
+            // --- Logika pro vyplnění formuláře při editaci ---
+            document.getElementById('modal-title').textContent = 'Detail rezervace';
             document.getElementById('delete-button').style.display = 'block';
+            document.getElementById('booking-id').value = booking.id;
+
+            // Rozparsujeme popis
+            const descRegex = /EU-SVA-(\d{6})-(\d{2})\s(.*)/;
+            const match = booking.description.match(descRegex);
+            if (match) {
+                euSvaInput.value = match[1];
+                projectInput.value = match[3];
+            } else {
+                projectInput.value = booking.description; // Fallback
+            }
+            
+            // Najdeme základní zařízení
+            const equipRow = allEquipmentRows.find(r => r.id === booking.equipment_id);
+            if (equipRow) {
+                equipSelect.value = equipRow.base_name;
+            }
+
+            startDateInput.value = booking.start_date;
+            endDateInput.value = booking.end_date;
+
+            // Zneaktivníme pole a tlačítko pro uložení, povolíme jen mazání
+            [euSvaInput, projectInput, equipSelect, bothSpacesCheckbox, startDateInput, endDateInput].forEach(el => el.disabled = true);
+            submitButton.style.display = 'none';
+
         } else {
+            // Nová rezervace
             document.getElementById('modal-title').textContent = 'Nová rezervace';
-            document.getElementById('booking-id').value = '';
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('booking-start').value = today;
-            document.getElementById('booking-end').value = today;
             document.getElementById('delete-button').style.display = 'none';
+            document.getElementById('booking-id').value = '';
+            
+            const today = new Date().toISOString().split('T')[0];
+            startDateInput.value = today;
+            endDateInput.value = today;
+            
+            // Povolíme všechna pole a tlačítko Uložit
+            [euSvaInput, projectInput, equipSelect, bothSpacesCheckbox, startDateInput, endDateInput].forEach(el => el.disabled = false);
+            submitButton.style.display = 'inline-flex';
         }
+        
+        handleEquipChange();
         modal.classList.add('visible');
     }
 
     modalForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const id = document.getElementById('booking-id').value ? parseInt(document.getElementById('booking-id').value, 10) : null;
-        const bookingData = { description: document.getElementById('booking-desc').value, equipment_id: document.getElementById('booking-equip').value, start_date: document.getElementById('booking-start').value, end_date: document.getElementById('booking-end').value };
-        if (normalizeDate(new Date(bookingData.end_date)) < normalizeDate(new Date(bookingData.start_date))) { alert("Datum 'do' nemůže být dříve než datum 'od'."); return; }
-        let success = false;
-        if (id) { bookingData.id = id; success = await updateBookingOnServer(bookingData); } 
-        else { const newBooking = await createBookingOnServer(bookingData); if (newBooking) success = true; }
-        if (success) { await fetchData(); render(); hideModal(); }
+        
+        // Zabráníme odeslání, pokud je otevřený detail (editace)
+        if (document.getElementById('booking-id').value) {
+            alert("Pro úpravu prosím smažte původní záznam a vytvořte nový. Tento formulář je pouze pro zobrazení detailů.");
+            return;
+        }
+
+        const euSvaNum = document.getElementById('booking-eusuva').value;
+        const projectName = document.getElementById('booking-project').value;
+        const baseEquipName = document.getElementById('booking-equip').value;
+        const takeBothSpaces = document.getElementById('booking-both-spaces').checked;
+        const currentYear = new Date().getFullYear().toString().slice(-2);
+
+        const description = `EU-SVA-${euSvaNum}-${currentYear} ${projectName}`;
+        
+        const bookingBase = {
+            description: description,
+            start_date: document.getElementById('booking-start').value,
+            end_date: document.getElementById('booking-end').value,
+        };
+
+        if (normalizeDate(new Date(bookingBase.end_date)) < normalizeDate(new Date(bookingBase.start_date))) {
+            alert("Datum 'do' nemůže být dříve než datum 'od'.");
+            return;
+        }
+
+        let bookingsToCreate = [];
+        const selectedEquipData = allEquipmentData.find(e => e.name === baseEquipName);
+        
+        if (selectedEquipData.sides > 1 && takeBothSpaces) {
+            const space1_id = allEquipmentRows.find(r => r.base_name === baseEquipName && (r.id.includes('Prostor 1'))).id;
+            const space2_id = allEquipmentRows.find(r => r.base_name === baseEquipName && (r.id.includes('Prostor 2') || r.id.includes('PNEUMATIKA'))).id;
+            bookingsToCreate.push({ ...bookingBase, equipment_id: space1_id });
+            bookingsToCreate.push({ ...bookingBase, equipment_id: space2_id });
+        } else {
+            const equipRow = allEquipmentRows.find(r => r.base_name === baseEquipName);
+            bookingsToCreate.push({ ...bookingBase, equipment_id: equipRow.id });
+        }
+        
+        const promises = bookingsToCreate.map(b => createBookingOnServer(b));
+        const results = await Promise.all(promises);
+
+        if (results.some(r => r === null)) {
+            alert('Chyba: Jedna nebo více rezervací se překrývá s jinou, byla překročena kapacita, nebo nastala jiná chyba. Zkontrolujte prosím kalendář.');
+        }
+
+        await fetchData();
+        render();
+        hideModal();
     });
 
     addTestButton.addEventListener('click', () => showModal());
     document.getElementById('cancel-button').addEventListener('click', hideModal);
     document.getElementById('delete-button').addEventListener('click', async () => {
-        if (!confirm('Opravdu chcete smazat tuto rezervaci?')) return;
+        if (!confirm('Opravdu chcete smazat tuto rezervaci? Poznámka: Pokud rezervace zabírá oba prostory, je nutné smazat každou zvlášť.')) return;
         const id = parseInt(document.getElementById('booking-id').value, 10);
-        if (await deleteBookingOnServer(id)) { await fetchData(); render(); hideModal(); }
+        if (await deleteBookingOnServer(id)) {
+            await fetchData();
+            render();
+            hideModal();
+        }
     });
     
     interact('.booking-bar')
@@ -242,7 +349,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 const target = event.target;
                 let x = (parseFloat(target.getAttribute('data-x')) || 0);
                 target.style.width = `${event.rect.width}px`;
-                // Při změně zleva posouváme i transformací
                 if (event.deltaRect.left) {
                     x += event.deltaRect.left;
                     target.style.transform = `translate(${x}px, 0px)`;
@@ -299,7 +405,6 @@ document.addEventListener('DOMContentLoaded', function() {
         await handleInteractionEnd(updatedBooking);
     }
     
-    // --- OPRAVENÁ FUNKCE ZDE ---
     async function handleResizeEnd(event) {
         const target = event.target;
         const bookingId = parseInt(target.dataset.bookingId, 10);
@@ -308,42 +413,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
         let updatedBooking;
 
-        // Rozlišíme, zda byla tažena levá nebo pravá hrana
         if (event.edges.left) {
-            // --- Logika pro změnu zleva (mění se START_DATE) ---
             const x_translation = parseFloat(target.getAttribute('data-x')) || 0;
             const daysShifted = Math.round(x_translation / DAY_WIDTH);
-
             const originalStartDate = normalizeDate(new Date(originalBooking.start_date));
             const newStartDate = addDays(originalStartDate, daysShifted);
-            
             const originalEndDate = normalizeDate(new Date(originalBooking.end_date));
-
-            // Zabráníme překřížení dat
-            if (newStartDate > originalEndDate) {
-                render(); // Zrušíme změnu a překreslíme
-                return;
-            }
-
-            updatedBooking = {
-                ...originalBooking,
-                start_date: newStartDate.toISOString().split('T')[0],
-            };
+            if (newStartDate > originalEndDate) { render(); return; }
+            updatedBooking = { ...originalBooking, start_date: newStartDate.toISOString().split('T')[0] };
         } else {
-            // --- Logika pro změnu zprava (mění se END_DATE) ---
             const newWidth = event.rect.width;
             const durationDays = Math.max(1, Math.round(newWidth / DAY_WIDTH));
-            
             const originalStartDate = normalizeDate(new Date(originalBooking.start_date));
             const newEndDate = addDays(originalStartDate, durationDays - 1);
-
-            updatedBooking = {
-                ...originalBooking,
-                end_date: newEndDate.toISOString().split('T')[0]
-            };
+            updatedBooking = { ...originalBooking, end_date: newEndDate.toISOString().split('T')[0] };
         }
 
-        // Vyčistíme dočasné atributy
         target.removeAttribute('data-x');
         target.removeAttribute('data-y');
         target.removeAttribute('data-offset-x');

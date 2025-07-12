@@ -64,10 +64,9 @@ body {
     background-color: var(--bg-secondary-color);
     overflow-y: hidden;
     border-right: 1px solid var(--border-color);
-    /* --- OPRAVA ZDE: Přilepení sloupce k levému okraji --- */
     position: sticky;
     left: 0;
-    z-index: 15; /* Zajistí, že bude nad mřížkou, ale pod sticky záhlavím */
+    z-index: 15;
 }
 .sidebar-header {
     height: var(--header-height);
@@ -90,7 +89,7 @@ body {
 .date-header {
     position: sticky;
     top: 0;
-    z-index: 20; /* Vyšší z-index, aby byl nad vším */
+    z-index: 20;
     background-color: var(--bg-secondary-color);
     display: flex;
     flex-direction: column;
@@ -140,3 +139,42 @@ body {
 .status-active { background-color: #4caf50; }
 .status-maintenance { background-color: #ff9800; }
 .status-calibration { background-color: #2196f3; }
+
+.max-tests-info {
+    font-size: 0.75rem;
+    color: #888;
+    margin-left: auto;
+    font-weight: 400;
+}
+
+/* --- ZMĚNA ZDE: Nové styly pro formulář --- */
+.form-row-flex {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+.form-row-flex input {
+    margin-bottom: 0;
+    text-align: center;
+}
+.form-row-flex span {
+    color: #999;
+}
+.form-checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+.form-checkbox-group input {
+    width: auto;
+    margin-bottom: 0;
+}
+.form-checkbox-group label {
+    margin-bottom: 0;
+    color: var(--text-color);
+}
+#booking-eusuva {
+    width: 12ch; /* Nastaví šířku na cca 12 znaků */
+}
