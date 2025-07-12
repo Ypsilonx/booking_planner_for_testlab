@@ -1,0 +1,60 @@
+{
+    "bookings": [
+        {
+            "description": "dfgsdfgdfgsdfgsdfgsdgd",
+            "end_date": "2025-07-13",
+            "equipment_id": "FASI big - Prostor 2",
+            "id": 101,
+            "start_date": "2025-07-10",
+            "lane": 0
+        },
+        {
+            "description": "tszgfdgdfgf",
+            "end_date": "2025-07-18",
+            "equipment_id": "FASI big - Prostor 2",
+            "id": 102,
+            "lane": 0,
+            "start_date": "2025-07-10"
+        },
+        {
+            "description": "dfysdfdsfsdfsdf",
+            "end_date": "2025-07-12",
+            "equipment_id": "Meas. place Big linak",
+            "id": 103,
+            "lane": 1,
+            "start_date": "2025-07-09"
+        },
+        {
+            "description": "sdfffffffffffffffffffffffffffffffffff",
+            "end_date": "2025-07-13",
+            "equipment_id": "Meas. place Big linak",
+            "id": 104,
+            "lane": 1,
+            "start_date": "2025-07-11"
+        },
+        {
+            "description": "edddddddd",
+            "end_date": "2025-07-13",
+            "equipment_id": "Meas. place Big linak",
+            "id": 105,
+            "lane": 2,
+            "start_date": "2025-07-11"
+        },
+        {
+            "description": "drtertertertererertertert",
+            "equipment_id": "Meas. place Big linak",
+            "start_date": "2025-07-12",
+            "end_date": "2025-07-16",
+            "id": 106
+        },
+        {
+            "description": "ertertertertert",
+            "end_date": "2025-07-21",
+            "equipment_id": "Meas. place Big linak",
+            "id": 107,
+            "start_date": "2025-07-08",
+            "lane": 4
+        }
+    ],
+    "next_booking_id": 108
+}

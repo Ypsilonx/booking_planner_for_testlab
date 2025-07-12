@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rezervační systém v3.2</title>
+    <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header class="header">
+        <h1>Rezervační systém</h1>
+        <button id="add-test-button" class="btn btn-primary">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
+            </svg>
+            Nový test
+        </button>
+    </header>
+
+    <main class="main-container">
+        <div class="timeline-viewport">
+            <div class="app-layout">
+                <div id="equipment-sidebar" class="equipment-sidebar">
+                    </div>
+
+                <div id="timeline-grid-wrapper" class="timeline-grid-wrapper">
+                    <div id="timeline-grid" class="timeline-grid"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="booking-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h2 id="modal-title">Editovat rezervaci</h2>
+            <form id="booking-form">
+                <input type="hidden" id="booking-id">
+                <div>
+                    <label for="booking-desc">Popis (kód testu a projekt)</label>
+                    <input type="text" id="booking-desc" required>
+                </div>
+                <div>
+                    <label for="booking-equip">Zařízení</label>
+                    <select id="booking-equip" required></select>
+                </div>
+                <div>
+                    <label for="booking-start">Datum od</label>
+                    <input type="date" id="booking-start" required>
+                </div>
+                <div>
+                    <label for="booking-end">Datum do</label>
+                    <input type="date" id="booking-end" required>
+                </div>
+                <div class="modal-buttons">
+                    <button type="button" id="delete-button" class="btn btn-danger" style="margin-right: auto;">Smazat</button>
+                    <button type="button" id="cancel-button" class="btn btn-secondary">Zrušit</button>
+                    <button type="submit" class="btn btn-primary">Uložit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
