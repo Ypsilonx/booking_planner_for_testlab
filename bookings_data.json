@@ -1,21 +1,4 @@
 {
-    "bookings": [
-        {
-            "description": "EU-SVA-179852-25 BK6 - springmata",
-            "end_date": "2025-07-12",
-            "equipment_id": "TisNg Hybrid 4 - Prostor 1",
-            "id": 108,
-            "lane": 0,
-            "start_date": "2025-07-12"
-        },
-        {
-            "description": "EU-SVA-987654-25 dfdsfsdfsdfsd",
-            "end_date": "2025-07-14",
-            "equipment_id": "SPS 4 - Prostor 2",
-            "id": 109,
-            "lane": 0,
-            "start_date": "2025-07-12"
-        }
-    ],
-    "next_booking_id": 110
+    "bookings": [],
+    "next_booking_id": 111
 }
