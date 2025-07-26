@@ -51,6 +51,12 @@
                 </svg>
                 Nové zařízení
             </button>
+            <button id="manage-projects-button" class="btn btn-secondary">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M9.828 3h3.982a2 2 0 0 1 1.992 2.181l-.637 7A2 2 0 0 1 13.174 14H2.825a2 2 0 0 1-1.991-1.819l-.637-7a1.99 1.99 0 0 1 .342-1.31L.5 3a2 2 0 0 1 2-2h3.672a2 2 0 0 1 1.414.586l.828.828A2 2 0 0 0 9.828 3zm-8.322.12C1.72 3.042 1.95 3 2.19 3h5.396l-.707-.707A1 1 0 0 0 6.172 2H2.5a1 1 0 0 0-1 .981l.006.139z"/>
+                </svg>
+                Správa projektů
+            </button>
             <button id="add-test-button" class="btn btn-primary">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                     <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
@@ -93,8 +99,27 @@
                 </div>
 
                 <div>
+                    <label for="booking-project-color">Barva projektu</label>
+                    <div class="color-picker-container">
+                        <input type="color" id="booking-project-color" value="#4a90e2">
+                        <select id="booking-project-preset">
+                            <option value="">Vyberte předvolbu projektu</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
                     <label for="booking-equip">Zařízení</label>
                     <select id="booking-equip" required></select>
+                </div>
+
+                <div id="equipment-side-container" style="display: none;">
+                    <label for="booking-equipment-side">Strana zařízení</label>
+                    <select id="booking-equipment-side" required>
+                        <option value="A">Strana A</option>
+                        <option value="B">Strana B</option>
+                        <option value="both">Obě strany</option>
+                    </select>
                 </div>
 
                 <div id="both-spaces-container" class="form-checkbox-group" style="display: none;">
@@ -109,6 +134,25 @@
                 <div>
                     <label for="booking-end">Datum do</label>
                     <input type="date" id="booking-end" required>
+                </div>
+
+                <div>
+                    <label for="booking-display-text">Text zobrazený v kalendáři</label>
+                    <textarea id="booking-display-text" placeholder="Automaticky se vygeneruje z výše uvedených údajů" rows="3"></textarea>
+                </div>
+
+                <div>
+                    <label for="booking-text-style">Styl textu</label>
+                    <div class="text-style-controls">
+                        <input type="color" id="booking-text-color" value="#ffffff" title="Barva textu">
+                        <select id="booking-font-size">
+                            <option value="12px">Malé písmo</option>
+                            <option value="14px" selected>Normální písmo</option>
+                            <option value="16px">Větší písmo</option>
+                        </select>
+                        <label><input type="checkbox" id="booking-text-bold"> Tučné</label>
+                        <label><input type="checkbox" id="booking-text-italic"> Kurzíva</label>
+                    </div>
                 </div>
 
                 <div class="modal-buttons">
@@ -217,6 +261,40 @@
                     <button type="submit" class="btn btn-primary">Přidat zařízení</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Modal pro správu projektů -->
+    <div id="projects-modal" class="modal-overlay">
+        <div class="modal-content projects-modal-content">
+            <h2>Správa projektů</h2>
+            
+            <div class="projects-list">
+                <div class="projects-header">
+                    <span>Název projektu</span>
+                    <span>Barva</span>
+                    <span>Stav</span>
+                    <span>Akce</span>
+                </div>
+                <div id="projects-container">
+                    <!-- Projekty se načtou dynamicky -->
+                </div>
+            </div>
+            
+            <div class="add-project-section">
+                <h3>Přidat nový projekt</h3>
+                <form id="add-project-form">
+                    <div class="form-row">
+                        <input type="text" id="new-project-name" placeholder="Název projektu" required>
+                        <input type="color" id="new-project-color" value="#4a90e2" required>
+                        <button type="submit" class="btn btn-primary">Přidat</button>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="modal-buttons">
+                <button type="button" id="close-projects-modal" class="btn btn-secondary">Zavřít</button>
+            </div>
         </div>
     </div>
 

@@ -10,6 +10,7 @@ app.config['JSON_AS_ASCII'] = False
 
 BOOKINGS_FILE = 'bookings_data.json'
 EQUIPMENT_FILE = 'equipment.json'
+PROJECTS_FILE = 'projects.json'
 
 def load_equipment():
     """Načte seznam zařízení z externího JSON souboru."""
@@ -19,6 +20,20 @@ def load_equipment():
     except (FileNotFoundError, json.JSONDecodeError):
         print(f"VAROVÁNÍ: Soubor '{EQUIPMENT_FILE}' nebyl nalezen nebo je neplatný.")
         return []
+
+def load_projects():
+    """Načte seznam projektů z externího JSON souboru."""
+    try:
+        with open(PROJECTS_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        print(f"VAROVÁNÍ: Soubor '{PROJECTS_FILE}' nebyl nalezen nebo je neplatný.")
+        return {"projects": []}
+
+def save_projects(data):
+    """Uloží data o projektech do JSON souboru."""
+    with open(PROJECTS_FILE, 'w', encoding='utf-8') as f:
+        json.dump(data, f, indent=4, ensure_ascii=False)
 
 def load_bookings():
     """Načte rezervace ze souboru."""
@@ -63,12 +78,14 @@ def index():
 
 @app.route('/api/data')
 def get_all_data():
-    """API endpoint, který vrací všechna data (zařízení a rezervace)."""
+    """API endpoint, který vrací všechna data (zařízení, rezervace a projekty)."""
     equipment = load_equipment()
     bookings_data = load_bookings()
+    projects_data = load_projects()
     return jsonify({
         "equipment": equipment,
-        "bookings": bookings_data.get("bookings", [])
+        "bookings": bookings_data.get("bookings", []),
+        "projects": projects_data.get("projects", [])
     })
 
 def check_collision(new_booking, all_bookings, all_equipment):
@@ -227,6 +244,87 @@ def delete_booking(booking_id):
         return jsonify({"success": True}), 200
         
     return jsonify({"error": "Booking not found"}), 404
+
+@app.route('/api/projects', methods=['GET'])
+def get_projects():
+    """Vrátí seznam všech projektů."""
+    projects_data = load_projects()
+    return jsonify(projects_data)
+
+@app.route('/api/projects', methods=['POST'])
+def create_project():
+    """Vytvoří nový projekt."""
+    new_project = request.json
+    
+    # Validace
+    if not new_project.get('name') or not new_project.get('color'):
+        return jsonify({"error": "Chybí název nebo barva projektu"}), 400
+    
+    projects_data = load_projects()
+    
+    # Kontrola duplicity názvu
+    existing_names = [p['name'] for p in projects_data['projects']]
+    if new_project['name'] in existing_names:
+        return jsonify({"error": "Projekt s tímto názvem již existuje"}), 409
+    
+    # Přidání defaultních hodnot
+    new_project['active'] = new_project.get('active', True)
+    
+    projects_data['projects'].append(new_project)
+    
+    try:
+        save_projects(projects_data)
+        return jsonify(new_project), 201
+    except Exception as e:
+        print(f"CHYBA při ukládání projektu: {e}")
+        return jsonify({"error": "Chyba při ukládání projektu"}), 500
+
+@app.route('/api/projects/<project_name>', methods=['PUT'])
+def update_project(project_name):
+    """Aktualizuje existující projekt."""
+    updated_project = request.json
+    projects_data = load_projects()
+    
+    # Najdi projekt podle názvu
+    project_index = None
+    for i, project in enumerate(projects_data['projects']):
+        if project['name'] == project_name:
+            project_index = i
+            break
+    
+    if project_index is not None:
+        # Zachovej původní název pokud není uveden nový
+        if 'name' not in updated_project:
+            updated_project['name'] = project_name
+            
+        projects_data['projects'][project_index] = {**projects_data['projects'][project_index], **updated_project}
+        
+        try:
+            save_projects(projects_data)
+            return jsonify(projects_data['projects'][project_index])
+        except Exception as e:
+            print(f"CHYBA při aktualizaci projektu: {e}")
+            return jsonify({"error": "Chyba při ukládání aktualizace projektu"}), 500
+    
+    return jsonify({"error": "Projekt nebyl nalezen"}), 404
+
+@app.route('/api/projects/<project_name>', methods=['DELETE'])
+def delete_project(project_name):
+    """Smaže projekt."""
+    projects_data = load_projects()
+    original_length = len(projects_data['projects'])
+    
+    projects_data['projects'] = [p for p in projects_data['projects'] if p['name'] != project_name]
+    
+    if len(projects_data['projects']) < original_length:
+        try:
+            save_projects(projects_data)
+            return jsonify({"success": True}), 200
+        except Exception as e:
+            print(f"CHYBA při mazání projektu: {e}")
+            return jsonify({"error": "Chyba při mazání projektu"}), 500
+        
+    return jsonify({"error": "Projekt nebyl nalezen"}), 404
 
 if __name__ == '__main__':
     # Ujisti se, že název souboru odpovídá tomu, jak aplikaci spouštíš.

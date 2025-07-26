@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let allEquipmentData = [];
     let allEquipmentRows = [];
     let allBookings = [];
+    let allProjects = [];
     let yearDates = [];
     let rowHeights = [];
     
@@ -17,6 +18,101 @@ document.addEventListener('DOMContentLoaded', function() {
     let customEquipmentNames = new Map(); // Map<equipment_id, custom_name>
     let customEquipmentStatuses = new Map(); // Map<equipment_id, custom_status>
     let customEquipmentCategories = new Map(); // Map<equipment_id, custom_category>
+
+    // Systém pro projekty - nyní se načítá ze serveru
+    let customProjects = new Map(); // Map<project_name, {color, textStyle}>
+    
+    function getProjectColor(projectName) {
+        // Najdi projekt v allProjects (ze serveru)
+        const serverProject = allProjects.find(p => p.name === projectName && p.active);
+        if (serverProject) {
+            return serverProject.color;
+        }
+        
+        // Fallback na custom projects (localStorage)
+        if (customProjects.has(projectName)) {
+            return customProjects.get(projectName).color;
+        }
+        
+        return '#4a90e2'; // Default barva
+    }
+    
+    async function loadProjectsFromServer() {
+        try {
+            const response = await fetch('/api/projects');
+            if (response.ok) {
+                const data = await response.json();
+                allProjects = data.projects || [];
+            }
+        } catch (error) {
+            console.warn('Chyba při načítání projektů ze serveru:', error);
+            allProjects = [];
+        }
+    }
+    
+    async function createProjectOnServer(projectData) {
+        try {
+            const response = await fetch('/api/projects', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(projectData)
+            });
+            
+            if (response.ok) {
+                return await response.json();
+            } else {
+                const error = await response.json();
+                alert(`Chyba při vytváření projektu: ${error.error}`);
+                return null;
+            }
+        } catch (error) {
+            console.error('Chyba sítě při vytváření projektu:', error);
+            alert('Chyba síťového připojení');
+            return null;
+        }
+    }
+    
+    async function updateProjectOnServer(projectName, projectData) {
+        try {
+            const response = await fetch(`/api/projects/${encodeURIComponent(projectName)}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(projectData)
+            });
+            
+            if (response.ok) {
+                return await response.json();
+            } else {
+                const error = await response.json();
+                alert(`Chyba při aktualizaci projektu: ${error.error}`);
+                return null;
+            }
+        } catch (error) {
+            console.error('Chyba sítě při aktualizaci projektu:', error);
+            alert('Chyba síťového připojení');
+            return null;
+        }
+    }
+    
+    async function deleteProjectOnServer(projectName) {
+        try {
+            const response = await fetch(`/api/projects/${encodeURIComponent(projectName)}`, {
+                method: 'DELETE'
+            });
+            
+            if (response.ok) {
+                return true;
+            } else {
+                const error = await response.json();
+                alert(`Chyba při mazání projektu: ${error.error}`);
+                return false;
+            }
+        } catch (error) {
+            console.error('Chyba sítě při mazání projektu:', error);
+            alert('Chyba síťového připojení');
+            return false;
+        }
+    }
 
     // Funkce pro ukládání a načítání custom nastavení
     function saveCustomSettings() {
@@ -230,6 +326,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             allEquipmentData = data.equipment || [];
             allBookings = data.bookings || [];
+            allProjects = data.projects || [];
             allEquipmentRows = [];
 
             // Načti custom nastavení
@@ -548,6 +645,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const startIndex = diffInDays(firstDate, bookingStart);
                 const durationDays = diffInDays(bookingStart, bookingEnd) + 1;
                 if (startIndex < -durationDays || startIndex >= yearDates.length) return;
+                
                 const bookingBar = document.createElement('div');
                 bookingBar.className = 'booking-bar';
                 bookingBar.textContent = booking.description;
@@ -557,7 +655,30 @@ document.addEventListener('DOMContentLoaded', function() {
                 bookingBar.style.height = `${LANE_HEIGHT * 0.8}px`;
                 bookingBar.style.left = `${startIndex * DAY_WIDTH}px`;
                 bookingBar.style.width = `${durationDays * DAY_WIDTH}px`;
-                bookingBar.style.backgroundColor = stringToColor(booking.description);
+                
+                // Použij barvu projektu nebo defaultní
+                if (booking.project_color) {
+                    bookingBar.style.backgroundColor = booking.project_color;
+                } else if (booking.project_name) {
+                    bookingBar.style.backgroundColor = getProjectColor(booking.project_name);
+                } else {
+                    bookingBar.style.backgroundColor = stringToColor(booking.description);
+                }
+                
+                // Aplikuj styly textu
+                if (booking.text_style) {
+                    bookingBar.style.color = booking.text_style.color || '#ffffff';
+                    bookingBar.style.fontSize = booking.text_style.fontSize || '14px';
+                    bookingBar.style.fontWeight = booking.text_style.bold ? 'bold' : 'normal';
+                    bookingBar.style.fontStyle = booking.text_style.italic ? 'italic' : 'normal';
+                } else {
+                    // Defaultní styly textu
+                    bookingBar.style.color = '#ffffff';
+                    bookingBar.style.fontSize = '14px';
+                    bookingBar.style.fontWeight = 'normal';
+                    bookingBar.style.fontStyle = 'normal';
+                }
+                
                 gridElement.appendChild(bookingBar);
             });
             cumulativeTop += rowHeights[equipIndex];
@@ -612,10 +733,43 @@ document.addEventListener('DOMContentLoaded', function() {
                 projectInput.value = booking.description; // Fallback
             }
             
+            // Načti barvu a styl projektu
+            if (booking.project_color) {
+                document.getElementById('booking-project-color').value = booking.project_color;
+            } else if (booking.project_name) {
+                document.getElementById('booking-project-color').value = getProjectColor(booking.project_name);
+            }
+            
+            if (booking.text_style) {
+                document.getElementById('booking-text-color').value = booking.text_style.color || '#ffffff';
+                document.getElementById('booking-font-size').value = booking.text_style.fontSize || '14px';
+                document.getElementById('booking-text-bold').checked = booking.text_style.bold || false;
+                document.getElementById('booking-text-italic').checked = booking.text_style.italic || false;
+            }
+            
+            // Načti custom text pokud existuje
+            if (booking.description !== `EU-SVA-${euSvaInput.value}-${new Date().getFullYear().toString().slice(-2)} ${projectInput.value}`) {
+                document.getElementById('booking-display-text').value = booking.description;
+            }
+            
             // Najdeme základní zařízení
             const equipRow = allEquipmentRows.find(r => r.id === booking.equipment_id);
             if (equipRow) {
                 equipSelect.value = equipRow.base_name;
+                
+                // Určíme stranu zařízení
+                const selectedEquipData = allEquipmentData.find(e => e.name === equipRow.base_name);
+                if (selectedEquipData && selectedEquipData.sides > 1) {
+                    const equipmentSideContainer = document.getElementById('equipment-side-container');
+                    const equipmentSideSelect = document.getElementById('booking-equipment-side');
+                    equipmentSideContainer.style.display = 'block';
+                    
+                    if (booking.equipment_id.includes('Strana 1') || booking.equipment_id.includes('Prostor 1')) {
+                        equipmentSideSelect.value = 'A';
+                    } else if (booking.equipment_id.includes('Strana 2') || booking.equipment_id.includes('Prostor 2') || booking.equipment_id.includes('PNEUMATIKA')) {
+                        equipmentSideSelect.value = 'B';
+                    }
+                }
             }
 
             startDateInput.value = booking.start_date;
@@ -641,8 +795,69 @@ document.addEventListener('DOMContentLoaded', function() {
             submitButton.style.display = 'inline-flex';
         }
         
+        // Inicializuj nové prvky formuláře
+        initializeFormElements();
+        
         handleEquipChange();
         modal.classList.add('visible');
+    }
+
+    function initializeFormElements() {
+        // Naplň dropdown s projekty ze serveru
+        const projectPresetSelect = document.getElementById('booking-project-preset');
+        const activeProjects = allProjects.filter(p => p.active);
+        projectPresetSelect.innerHTML = '<option value="">Vyberte předvolbu projektu</option>' +
+            activeProjects.map(p => `<option value="${p.name}" data-color="${p.color}">${p.name}</option>`).join('');
+        
+        // Event listener pro výběr předvolby projektu
+        projectPresetSelect.addEventListener('change', function() {
+            if (this.value) {
+                document.getElementById('booking-project').value = this.value;
+                const selectedOption = this.options[this.selectedIndex];
+                document.getElementById('booking-project-color').value = selectedOption.dataset.color;
+                updateDisplayText();
+            }
+        });
+        
+        // Event listener pro změnu názvu projektu
+        document.getElementById('booking-project').addEventListener('input', updateDisplayText);
+        document.getElementById('booking-eusuva').addEventListener('input', updateDisplayText);
+        
+        // Event listener pro výběr strany zařízení
+        const equipSelect = document.getElementById('booking-equip');
+        const equipmentSideContainer = document.getElementById('equipment-side-container');
+        const equipmentSideSelect = document.getElementById('booking-equipment-side');
+        
+        equipSelect.addEventListener('change', function() {
+            const selectedEquip = allEquipmentData.find(e => e.name === this.value);
+            if (selectedEquip && selectedEquip.sides > 1) {
+                equipmentSideContainer.style.display = 'block';
+                equipmentSideSelect.required = true;
+            } else {
+                equipmentSideContainer.style.display = 'none';
+                equipmentSideSelect.required = false;
+                equipmentSideSelect.value = 'A'; // Default
+            }
+        });
+        
+        // Inicializuj defaultní hodnoty
+        document.getElementById('booking-project-color').value = '#4a90e2';
+        document.getElementById('booking-text-color').value = '#ffffff';
+        document.getElementById('booking-font-size').value = '14px';
+        
+        updateDisplayText();
+    }
+    
+    function updateDisplayText() {
+        const euSvaNum = document.getElementById('booking-eusuva').value;
+        const projectName = document.getElementById('booking-project').value;
+        const currentYear = new Date().getFullYear().toString().slice(-2);
+        
+        const displayText = euSvaNum && projectName ? 
+            `EU-SVA-${euSvaNum}-${currentYear} ${projectName}` : 
+            'Automaticky se vygeneruje z výše uvedených údajů';
+            
+        document.getElementById('booking-display-text').placeholder = displayText;
     }
 
     modalForm.addEventListener('submit', async (e) => {
@@ -651,16 +866,43 @@ document.addEventListener('DOMContentLoaded', function() {
         const bookingId = document.getElementById('booking-id').value;
         const euSvaNum = document.getElementById('booking-eusuva').value;
         const projectName = document.getElementById('booking-project').value;
+        const projectColor = document.getElementById('booking-project-color').value;
         const baseEquipName = document.getElementById('booking-equip').value;
+        const equipmentSide = document.getElementById('booking-equipment-side').value;
         const takeBothSpaces = document.getElementById('booking-both-spaces').checked;
+        const customDisplayText = document.getElementById('booking-display-text').value;
+        const textColor = document.getElementById('booking-text-color').value;
+        const fontSize = document.getElementById('booking-font-size').value;
+        const textBold = document.getElementById('booking-text-bold').checked;
+        const textItalic = document.getElementById('booking-text-italic').checked;
         const currentYear = new Date().getFullYear().toString().slice(-2);
 
-        const description = `EU-SVA-${euSvaNum}-${currentYear} ${projectName}`;
+        // Uložíme nebo aktualizujeme projekt v custom projects (pro localStorage cache)
+        customProjects.set(projectName, {
+            color: projectColor,
+            textStyle: {
+                color: textColor,
+                fontSize: fontSize,
+                bold: textBold,
+                italic: textItalic
+            }
+        });
+
+        const defaultDescription = `EU-SVA-${euSvaNum}-${currentYear} ${projectName}`;
+        const description = customDisplayText || defaultDescription;
         
         const bookingBase = {
             description: description,
             start_date: document.getElementById('booking-start').value,
             end_date: document.getElementById('booking-end').value,
+            project_name: projectName,
+            project_color: projectColor,
+            text_style: {
+                color: textColor,
+                fontSize: fontSize,
+                bold: textBold,
+                italic: textItalic
+            }
         };
 
         if (normalizeDate(new Date(bookingBase.end_date)) < normalizeDate(new Date(bookingBase.start_date))) {
@@ -693,27 +935,50 @@ document.addEventListener('DOMContentLoaded', function() {
             let bookingsToCreate = [];
             const selectedEquipData = allEquipmentData.find(e => e.name === baseEquipName);
             
-            if (selectedEquipData.sides > 1 && takeBothSpaces) {
-                // Hledání prvního a druhého prostoru/strany
-                let space1_id, space2_id;
-                
-                if (selectedEquipData.name.includes('TisNg Hybrid')) {
-                    space1_id = allEquipmentRows.find(r => r.base_name === baseEquipName && r.id.includes('Strana 1'))?.id;
-                    space2_id = allEquipmentRows.find(r => r.base_name === baseEquipName && r.id.includes('PNEUMATIKA'))?.id;
+            if (selectedEquipData.sides > 1) {
+                if (equipmentSide === 'both' || takeBothSpaces) {
+                    // Hledání prvního a druhého prostoru/strany
+                    let space1_id, space2_id;
+                    
+                    if (selectedEquipData.name.includes('TisNg Hybrid')) {
+                        space1_id = allEquipmentRows.find(r => r.base_name === baseEquipName && r.id.includes('Strana 1'))?.id;
+                        space2_id = allEquipmentRows.find(r => r.base_name === baseEquipName && r.id.includes('PNEUMATIKA'))?.id;
+                    } else {
+                        const spaceLabel = selectedEquipData.name.toLowerCase().includes('climatic') ? 'Prostor' : 'Strana';
+                        space1_id = allEquipmentRows.find(r => r.base_name === baseEquipName && r.id.includes(`${spaceLabel} 1`))?.id;
+                        space2_id = allEquipmentRows.find(r => r.base_name === baseEquipName && r.id.includes(`${spaceLabel} 2`))?.id;
+                    }
+                    
+                    if (space1_id && space2_id) {
+                        bookingsToCreate.push({ ...bookingBase, equipment_id: space1_id });
+                        bookingsToCreate.push({ ...bookingBase, equipment_id: space2_id });
+                    } else {
+                        alert('Chyba: Nenalezeny oba prostory/strany pro vybrané zařízení.');
+                        return;
+                    }
                 } else {
+                    // Vyberte konkrétní stranu
                     const spaceLabel = selectedEquipData.name.toLowerCase().includes('climatic') ? 'Prostor' : 'Strana';
-                    space1_id = allEquipmentRows.find(r => r.base_name === baseEquipName && r.id.includes(`${spaceLabel} 1`))?.id;
-                    space2_id = allEquipmentRows.find(r => r.base_name === baseEquipName && r.id.includes(`${spaceLabel} 2`))?.id;
-                }
-                
-                if (space1_id && space2_id) {
-                    bookingsToCreate.push({ ...bookingBase, equipment_id: space1_id });
-                    bookingsToCreate.push({ ...bookingBase, equipment_id: space2_id });
-                } else {
-                    alert('Chyba: Nenalezeny oba prostory/strany pro vybrané zařízení.');
-                    return;
+                    const sideNumber = equipmentSide === 'A' ? '1' : '2';
+                    let sideId;
+                    
+                    if (selectedEquipData.name.includes('TisNg Hybrid')) {
+                        sideId = equipmentSide === 'A' 
+                            ? allEquipmentRows.find(r => r.base_name === baseEquipName && r.id.includes('Strana 1'))?.id
+                            : allEquipmentRows.find(r => r.base_name === baseEquipName && r.id.includes('PNEUMATIKA'))?.id;
+                    } else {
+                        sideId = allEquipmentRows.find(r => r.base_name === baseEquipName && r.id.includes(`${spaceLabel} ${sideNumber}`))?.id;
+                    }
+                    
+                    if (sideId) {
+                        bookingsToCreate.push({ ...bookingBase, equipment_id: sideId });
+                    } else {
+                        alert(`Chyba: Nenalezena strana ${equipmentSide} pro vybrané zařízení.`);
+                        return;
+                    }
                 }
             } else {
+                // Jednoprostrové zařízení
                 const equipRow = allEquipmentRows.find(r => r.base_name === baseEquipName);
                 bookingsToCreate.push({ ...bookingBase, equipment_id: equipRow.id });
             }
@@ -940,6 +1205,82 @@ document.addEventListener('DOMContentLoaded', function() {
         viewport.scrollTo({ left: Math.max(0, newScroll), behavior: 'smooth' });
     }
 
+    // Funkce pro správu projektů
+    function showProjectsModal() {
+        const modal = document.getElementById('projects-modal');
+        renderProjectsList();
+        modal.classList.add('visible');
+    }
+    
+    function hideProjectsModal() {
+        document.getElementById('projects-modal').classList.remove('visible');
+    }
+    
+    function renderProjectsList() {
+        const container = document.getElementById('projects-container');
+        container.innerHTML = '';
+        
+        allProjects.forEach(project => {
+            const item = document.createElement('div');
+            item.className = 'project-item';
+            
+            item.innerHTML = `
+                <div class="project-name">${project.name}</div>
+                <div class="project-color" style="background-color: ${project.color}" 
+                     onclick="editProjectColor('${project.name}', this)" title="Klik pro změnu barvy"></div>
+                <div class="project-status">
+                    <div class="status-toggle" onclick="toggleProjectStatus('${project.name}')">
+                        <div class="status-indicator ${project.active ? 'active' : 'inactive'}"></div>
+                        <span>${project.active ? 'Aktivní' : 'Neaktivní'}</span>
+                    </div>
+                </div>
+                <div class="project-actions">
+                    <button class="btn btn-danger" onclick="deleteProject('${project.name}')">Smazat</button>
+                </div>
+            `;
+            
+            container.appendChild(item);
+        });
+    }
+    
+    async function editProjectColor(projectName, colorElement) {
+        const input = document.createElement('input');
+        input.type = 'color';
+        input.value = colorElement.style.backgroundColor || '#4a90e2';
+        
+        input.onchange = async function() {
+            const success = await updateProjectOnServer(projectName, { color: input.value });
+            if (success) {
+                colorElement.style.backgroundColor = input.value;
+                await loadProjectsFromServer();
+                renderProjectsList();
+            }
+        };
+        
+        input.click();
+    }
+    
+    async function toggleProjectStatus(projectName) {
+        const project = allProjects.find(p => p.name === projectName);
+        if (project) {
+            const success = await updateProjectOnServer(projectName, { active: !project.active });
+            if (success) {
+                await loadProjectsFromServer();
+                renderProjectsList();
+            }
+        }
+    }
+    
+    async function deleteProject(projectName) {
+        if (confirm(`Opravdu chcete smazat projekt "${projectName}"?`)) {
+            const success = await deleteProjectOnServer(projectName);
+            if (success) {
+                await loadProjectsFromServer();
+                renderProjectsList();
+            }
+        }
+    }
+
     async function init() {
         // Synchronizace scrollování: pouze grid -> sidebar
         // Sidebar NEMÁ vlastní scroll, ale má scrollTop pro synchronizaci
@@ -1014,6 +1355,30 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('next-3days-btn').addEventListener('click', () => navigateCalendar(3));
         document.getElementById('prev-week-btn').addEventListener('click', () => navigateCalendar(-7));
         document.getElementById('next-week-btn').addEventListener('click', () => navigateCalendar(7));
+        
+        // Projects modal event listeners
+        document.getElementById('manage-projects-button').addEventListener('click', showProjectsModal);
+        document.getElementById('close-projects-modal').addEventListener('click', hideProjectsModal);
+        
+        document.getElementById('add-project-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const name = document.getElementById('new-project-name').value.trim();
+            const color = document.getElementById('new-project-color').value;
+            
+            if (!name) {
+                alert('Zadejte název projektu');
+                return;
+            }
+            
+            const success = await createProjectOnServer({ name, color, active: true });
+            if (success) {
+                document.getElementById('new-project-name').value = '';
+                document.getElementById('new-project-color').value = '#4a90e2';
+                await loadProjectsFromServer();
+                renderProjectsList();
+            }
+        });
         
         await fetchData();
         const currentYear = new Date().getFullYear();
