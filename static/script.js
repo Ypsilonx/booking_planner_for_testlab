@@ -724,13 +724,21 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('booking-id').value = booking.id;
 
             // Rozparsujeme popis
-            const descRegex = /EU-SVA-(\d{6})-(\d{2})\s(.*)/;
+            const descRegex = /EU-SVA-(\d{6})-(\d{2})\s([^-]+)(?:\s-\s(.*))?/;
             const match = booking.description.match(descRegex);
             if (match) {
                 euSvaInput.value = match[1];
                 projectInput.value = match[3];
+                if (match[4]) {
+                    document.getElementById('booking-note').value = match[4];
+                }
             } else {
                 projectInput.value = booking.description; // Fallback
+            }
+            
+            // Načti poznámku z booking objektu pokud existuje
+            if (booking.note) {
+                document.getElementById('booking-note').value = booking.note;
             }
             
             // Načti barvu a styl projektu
@@ -819,9 +827,10 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         
-        // Event listener pro změnu názvu projektu
+        // Event listener pro změnu názvu projektu a poznámky
         document.getElementById('booking-project').addEventListener('input', updateDisplayText);
         document.getElementById('booking-eusuva').addEventListener('input', updateDisplayText);
+        document.getElementById('booking-note').addEventListener('input', updateDisplayText);
         
         // Event listener pro výběr strany zařízení
         const equipSelect = document.getElementById('booking-equip');
@@ -851,11 +860,18 @@ document.addEventListener('DOMContentLoaded', function() {
     function updateDisplayText() {
         const euSvaNum = document.getElementById('booking-eusuva').value;
         const projectName = document.getElementById('booking-project').value;
+        const note = document.getElementById('booking-note').value;
         const currentYear = new Date().getFullYear().toString().slice(-2);
         
-        const displayText = euSvaNum && projectName ? 
-            `EU-SVA-${euSvaNum}-${currentYear} ${projectName}` : 
-            'Automaticky se vygeneruje z výše uvedených údajů';
+        let displayText = '';
+        if (euSvaNum && projectName) {
+            displayText = `EU-SVA-${euSvaNum}-${currentYear} ${projectName}`;
+            if (note) {
+                displayText += ` - ${note}`;
+            }
+        } else {
+            displayText = 'Automaticky se vygeneruje z výše uvedených údajů';
+        }
             
         document.getElementById('booking-display-text').placeholder = displayText;
     }
@@ -867,6 +883,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const euSvaNum = document.getElementById('booking-eusuva').value;
         const projectName = document.getElementById('booking-project').value;
         const projectColor = document.getElementById('booking-project-color').value;
+        const note = document.getElementById('booking-note').value;
         const baseEquipName = document.getElementById('booking-equip').value;
         const equipmentSide = document.getElementById('booking-equipment-side').value;
         const takeBothSpaces = document.getElementById('booking-both-spaces').checked;
@@ -888,7 +905,9 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        const defaultDescription = `EU-SVA-${euSvaNum}-${currentYear} ${projectName}`;
+        const defaultDescription = note ? 
+            `EU-SVA-${euSvaNum}-${currentYear} ${projectName} - ${note}` :
+            `EU-SVA-${euSvaNum}-${currentYear} ${projectName}`;
         const description = customDisplayText || defaultDescription;
         
         const bookingBase = {
@@ -897,6 +916,7 @@ document.addEventListener('DOMContentLoaded', function() {
             end_date: document.getElementById('booking-end').value,
             project_name: projectName,
             project_color: projectColor,
+            note: note,
             text_style: {
                 color: textColor,
                 fontSize: fontSize,

@@ -79,81 +79,99 @@
     </main>
 
     <div id="booking-modal" class="modal-overlay">
-        <div class="modal-content">
+        <div class="modal-content booking-modal-content">
             <h2 id="modal-title">Nová rezervace</h2>
             <form id="booking-form">
                 <input type="hidden" id="booking-id">
                 
-                <div>
-                    <label for="booking-eusuva">Kód testu (EU-SVA-)</label>
-                    <div class="form-row-flex">
-                        <span>EU-SVA-</span>
-                        <input type="text" id="booking-eusuva" required pattern="\d{6}" maxlength="6" placeholder="xxxxxx" title="Zadejte 6 číslic">
-                        <span id="eusuva-year">-25</span>
+                <!-- Hlavní řádek: Číslo testu + Projekt -->
+                <div class="form-row-grid">
+                    <div class="form-group">
+                        <label for="booking-eusuva">Číslo testu</label>
+                        <div class="form-row-flex">
+                            <span>EU-SVA-</span>
+                            <input type="text" id="booking-eusuva" required pattern="\d{6}" maxlength="6" placeholder="xxxxxx" title="Zadejte 6 číslic">
+                            <span id="eusuva-year">-25</span>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="booking-project">Projekt</label>
+                        <div class="project-row">
+                            <select id="booking-project-preset">
+                                <option value="">Vyberte projekt</option>
+                            </select>
+                            <input type="text" id="booking-project" required placeholder="nebo zadejte vlastní">
+                            <input type="color" id="booking-project-color" value="#4a90e2" title="Barva projektu">
+                        </div>
                     </div>
                 </div>
 
-                <div>
-                    <label for="booking-project">Název projektu</label>
-                    <input type="text" id="booking-project" required placeholder="Např. VW2025">
+                <!-- Poznámka -->
+                <div class="form-group">
+                    <label for="booking-note">Poznámka k testu</label>
+                    <input type="text" id="booking-note" placeholder="Volitelné vysvětlení o jaký test se jedná">
                 </div>
 
-                <div>
-                    <label for="booking-project-color">Barva projektu</label>
-                    <div class="color-picker-container">
-                        <input type="color" id="booking-project-color" value="#4a90e2">
-                        <select id="booking-project-preset">
-                            <option value="">Vyberte předvolbu projektu</option>
+                <!-- Zařízení řádek -->
+                <div class="form-row-grid">
+                    <div class="form-group">
+                        <label for="booking-equip">Zařízení</label>
+                        <select id="booking-equip" required></select>
+                    </div>
+
+                    <div class="form-group" id="equipment-side-container" style="display: none;">
+                        <label for="booking-equipment-side">Strana zařízení</label>
+                        <select id="booking-equipment-side">
+                            <option value="A">Strana A</option>
+                            <option value="B">Strana B</option>
+                            <option value="both">Obě strany</option>
                         </select>
                     </div>
-                </div>
-
-                <div>
-                    <label for="booking-equip">Zařízení</label>
-                    <select id="booking-equip" required></select>
-                </div>
-
-                <div id="equipment-side-container" style="display: none;">
-                    <label for="booking-equipment-side">Strana zařízení</label>
-                    <select id="booking-equipment-side" required>
-                        <option value="A">Strana A</option>
-                        <option value="B">Strana B</option>
-                        <option value="both">Obě strany</option>
-                    </select>
-                </div>
-
-                <div id="both-spaces-container" class="form-checkbox-group" style="display: none;">
-                    <input type="checkbox" id="booking-both-spaces">
-                    <label for="booking-both-spaces">Zabrat oba prostory</label>
-                </div>
-
-                <div>
-                    <label for="booking-start">Datum od</label>
-                    <input type="date" id="booking-start" required>
-                </div>
-                <div>
-                    <label for="booking-end">Datum do</label>
-                    <input type="date" id="booking-end" required>
-                </div>
-
-                <div>
-                    <label for="booking-display-text">Text zobrazený v kalendáři</label>
-                    <textarea id="booking-display-text" placeholder="Automaticky se vygeneruje z výše uvedených údajů" rows="3"></textarea>
-                </div>
-
-                <div>
-                    <label for="booking-text-style">Styl textu</label>
-                    <div class="text-style-controls">
-                        <input type="color" id="booking-text-color" value="#ffffff" title="Barva textu">
-                        <select id="booking-font-size">
-                            <option value="12px">Malé písmo</option>
-                            <option value="14px" selected>Normální písmo</option>
-                            <option value="16px">Větší písmo</option>
-                        </select>
-                        <label><input type="checkbox" id="booking-text-bold"> Tučné</label>
-                        <label><input type="checkbox" id="booking-text-italic"> Kurzíva</label>
+                    
+                    <div class="form-group checkbox-group" id="both-spaces-container" style="display: none;">
+                        <label>
+                            <input type="checkbox" id="booking-both-spaces">
+                            Zabrat oba prostory
+                        </label>
                     </div>
                 </div>
+
+                <!-- Datum řádek -->
+                <div class="form-row-grid">
+                    <div class="form-group">
+                        <label for="booking-start">Datum od</label>
+                        <input type="date" id="booking-start" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="booking-end">Datum do</label>
+                        <input type="date" id="booking-end" required>
+                    </div>
+                </div>
+
+                <!-- Pokročilé nastavení -->
+                <details class="advanced-settings">
+                    <summary>Pokročilé nastavení zobrazení</summary>
+                    
+                    <div class="form-group">
+                        <label for="booking-display-text">Vlastní text v kalendáři</label>
+                        <textarea id="booking-display-text" placeholder="Nechte prázdné pro automatické generování" rows="2"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Styl textu</label>
+                        <div class="text-style-controls">
+                            <input type="color" id="booking-text-color" value="#ffffff" title="Barva textu">
+                            <select id="booking-font-size">
+                                <option value="12px">Malé</option>
+                                <option value="14px" selected>Normální</option>
+                                <option value="16px">Větší</option>
+                            </select>
+                            <label><input type="checkbox" id="booking-text-bold"> Tučné</label>
+                            <label><input type="checkbox" id="booking-text-italic"> Kurzíva</label>
+                        </div>
+                    </div>
+                </details>
 
                 <div class="modal-buttons">
                     <button type="button" id="delete-button" class="btn btn-danger" style="margin-right: auto;">Smazat</button>

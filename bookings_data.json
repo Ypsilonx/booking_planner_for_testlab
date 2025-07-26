@@ -49,11 +49,19 @@
             "start_date": "2025-07-25"
         },
         {
-            "description": "EU-SVA-654321-25 BL5 - SLV DT",
+            "description": "EU-SVA-654321-25 BL5 SLV",
             "start_date": "2025-07-29",
             "end_date": "2025-08-15",
-            "equipment_id": "TisNg Electric 2 - Strana 1",
-            "id": 118
+            "project_name": "BL5 SLV",
+            "project_color": "#f55656",
+            "text_style": {
+                "color": "#000000",
+                "fontSize": "14px",
+                "bold": false,
+                "italic": false
+            },
+            "id": 118,
+            "equipment_id": "TisNg Electric 2 - Strana 1"
         },
         {
             "description": "EU-SVA-111111-25 BL5 SHV + SLV hard-DT",

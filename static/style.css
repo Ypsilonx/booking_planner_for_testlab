@@ -554,6 +554,105 @@ body {
     margin: 0;
 }
 
+/* Kompaktnější formulář pro rezervace */
+.booking-modal-content {
+    max-width: 900px;
+    width: 90vw;
+}
+
+.form-row-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.form-row-grid.three-cols {
+    grid-template-columns: 1fr 1fr 1fr;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.form-group label {
+    font-weight: 500;
+    color: var(--text-primary-color);
+    margin: 0;
+}
+
+.project-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.project-row select {
+    flex: 1;
+    min-width: 120px;
+}
+
+.project-row input[type="text"] {
+    flex: 1;
+    min-width: 100px;
+}
+
+.project-row input[type="color"] {
+    width: 40px;
+    height: 35px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.checkbox-group {
+    justify-content: center;
+    align-items: center;
+}
+
+.checkbox-group label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    margin: 0;
+    font-weight: normal;
+}
+
+.advanced-settings {
+    margin-top: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.advanced-settings summary {
+    padding: 0.75rem;
+    background-color: var(--bg-secondary-color);
+    cursor: pointer;
+    font-weight: 500;
+    user-select: none;
+}
+
+.advanced-settings summary:hover {
+    background-color: var(--header-bg-color);
+}
+
+.advanced-settings[open] summary {
+    border-bottom: 1px solid var(--border-color);
+}
+
+.advanced-settings .form-group {
+    margin: 1rem;
+}
+
+.advanced-settings .form-group:last-child {
+    margin-bottom: 1rem;
+}
+
 .form-section {
     margin: 1.5rem 0;
     padding: 1rem;
