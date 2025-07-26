@@ -658,6 +658,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 const bookingBar = document.createElement('div');
                 bookingBar.className = 'booking-bar';
+                
+                // Přidej CSS třídu pro blocker
+                if (booking.is_blocker) {
+                    bookingBar.classList.add('is-blocker');
+                }
+                
                 bookingBar.textContent = booking.description;
                 bookingBar.title = booking.description;
                 bookingBar.dataset.bookingId = booking.id;
@@ -786,6 +792,21 @@ document.addEventListener('DOMContentLoaded', function() {
             startDateInput.value = booking.start_date;
             endDateInput.value = booking.end_date;
 
+            // Nastavení blocker checkboxu
+            const isBlockerCheckbox = document.getElementById('booking-is-blocker');
+            const isBookingBlocker = booking.is_blocker || false;
+            isBlockerCheckbox.checked = isBookingBlocker;
+            
+            // Pokud je blocker, nastav EU-SVA pole na XXXXXX a disabled
+            if (isBookingBlocker) {
+                euSvaInput.value = 'XXXXXX';
+                euSvaInput.disabled = true;
+                euSvaInput.style.opacity = '0.6';
+            } else {
+                euSvaInput.disabled = false;
+                euSvaInput.style.opacity = '1';
+            }
+
             // Povolíme editaci všech polí
             [euSvaInput, projectInput, equipSelect, startDateInput, endDateInput].forEach(el => el.disabled = false);
             submitButton.style.display = 'inline-flex';
@@ -803,6 +824,12 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('delete-button').style.display = 'none';
             document.getElementById('copy-button').style.display = 'none';
             document.getElementById('booking-id').value = '';
+            
+            // Reset blocker checkboxu pro novou rezervaci
+            const isBlockerCheckbox = document.getElementById('booking-is-blocker');
+            isBlockerCheckbox.checked = false;
+            euSvaInput.disabled = false;
+            euSvaInput.style.opacity = '1';
             
             const today = new Date().toISOString().split('T')[0];
             startDateInput.value = today;
@@ -824,9 +851,30 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('booking-project').addEventListener('change', updateFormatPreview);
         document.getElementById('booking-project').addEventListener('input', updateDisplayText);
         document.getElementById('booking-note').addEventListener('input', updateFormatPreview);
+        document.getElementById('booking-note').addEventListener('input', updateDisplayText);
+        document.getElementById('booking-eusuva').addEventListener('input', updateDisplayText);
         document.getElementById('booking-text-bold').addEventListener('change', updateFormatPreview);
         document.getElementById('booking-text-italic').addEventListener('change', updateFormatPreview);
         document.getElementById('booking-font-size').addEventListener('change', updateFormatPreview);
+        
+        // Event listener pro blocker checkbox
+        document.getElementById('booking-is-blocker').addEventListener('change', function() {
+            const euSvaInput = document.getElementById('booking-eusuva');
+            const isBlocker = this.checked;
+            
+            if (isBlocker) {
+                euSvaInput.value = 'XXXXXX';
+                euSvaInput.disabled = true;
+                euSvaInput.style.opacity = '0.6';
+            } else {
+                euSvaInput.value = '';
+                euSvaInput.disabled = false;
+                euSvaInput.style.opacity = '1';
+            }
+            
+            updateDisplayText();
+            updateFormatPreview();
+        });
         
         // Inicializuj defaultní hodnoty  
         document.getElementById('booking-font-size').value = '14px';
@@ -878,11 +926,19 @@ document.addEventListener('DOMContentLoaded', function() {
         const euSvaNum = document.getElementById('booking-eusuva').value;
         const projectName = document.getElementById('booking-project').value;
         const note = document.getElementById('booking-note').value;
+        const isBlocker = document.getElementById('booking-is-blocker').checked;
         const currentYear = new Date().getFullYear().toString().slice(-2);
         
         let displayText = '';
-        if (euSvaNum && projectName) {
-            displayText = `EU-SVA-${euSvaNum}-${currentYear} ${projectName}`;
+        if (projectName) {
+            if (isBlocker) {
+                displayText = `EU-SVA-XXXXXX-${currentYear} ${projectName}`;
+            } else if (euSvaNum) {
+                displayText = `EU-SVA-${euSvaNum}-${currentYear} ${projectName}`;
+            } else {
+                displayText = `EU-SVA-[číslo]-${currentYear} ${projectName}`;
+            }
+            
             if (note) {
                 displayText += ` - ${note}`;
             }
@@ -899,6 +955,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const bookingId = document.getElementById('booking-id').value;
         const euSvaNum = document.getElementById('booking-eusuva').value;
         const projectName = document.getElementById('booking-project').value;
+        const isBlocker = document.getElementById('booking-is-blocker').checked;
         
         // Získaj farbu a textColor z projektu
         const project = allProjects.find(p => p.name === projectName);
@@ -913,6 +970,13 @@ document.addEventListener('DOMContentLoaded', function() {
         const textItalic = document.getElementById('booking-text-italic').checked;
         const currentYear = new Date().getFullYear().toString().slice(-2);
 
+        // Validace EU-SVA čísla pro ne-blockery
+        if (!isBlocker && (!euSvaNum || euSvaNum === 'XXXXXX')) {
+            alert('Pro regulérní test je nutné zadat platné 6-místné číslo testu.');
+            document.getElementById('booking-eusuva').focus();
+            return;
+        }
+
         // Uložíme nebo aktualizujeme projekt v custom projects (pro localStorage cache)
         customProjects.set(projectName, {
             color: projectColor,
@@ -924,9 +988,18 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        const defaultDescription = note ? 
-            `EU-SVA-${euSvaNum}-${currentYear} ${projectName} - ${note}` :
-            `EU-SVA-${euSvaNum}-${currentYear} ${projectName}`;
+        // Generování popisu podle toho zda je blocker nebo ne
+        let defaultDescription;
+        if (isBlocker) {
+            defaultDescription = note ? 
+                `EU-SVA-XXXXXX-${currentYear} ${projectName} - ${note}` :
+                `EU-SVA-XXXXXX-${currentYear} ${projectName}`;
+        } else {
+            defaultDescription = note ? 
+                `EU-SVA-${euSvaNum}-${currentYear} ${projectName} - ${note}` :
+                `EU-SVA-${euSvaNum}-${currentYear} ${projectName}`;
+        }
+        
         const description = customDisplayText || defaultDescription;
         
         const bookingBase = {
@@ -936,6 +1009,7 @@ document.addEventListener('DOMContentLoaded', function() {
             project_name: projectName,
             project_color: projectColor,
             note: note,
+            is_blocker: isBlocker,
             text_style: {
                 color: projectTextColor,
                 fontSize: fontSize,

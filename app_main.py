@@ -131,6 +131,20 @@ def check_collision(new_booking, all_bookings, all_equipment):
             
         # Kontroluj pouze pro STEJNÉ equipment_id (ne celé zařízení)
         if booking['equipment_id'] == equipment_id:
+            # JEDNODUCHÁ LOGIKA PRO BLOCKERY:
+            # Pokud vytváříme BLOCKER → ignoruj všechny existující blockery (blockery neblokují kapacitu)
+            
+            is_new_booking_blocker = new_booking.get('is_blocker', False)
+            is_existing_booking_blocker = booking.get('is_blocker', False)
+            is_editing = 'id' in new_booking
+            
+            print(f"DEBUG collision check: new_blocker={is_new_booking_blocker}, existing_blocker={is_existing_booking_blocker}, is_editing={is_editing}")
+            
+            # Pokud vytváříme/editujeme BLOCKER → ignoruj všechny existující blockery 
+            if is_new_booking_blocker and is_existing_booking_blocker:
+                print(f"DEBUG: Ignoring blocker booking {booking.get('id', 'unknown')} (new=blocker ignores existing blocker)")
+                continue
+                    
             try:
                 existing_start = datetime.date.fromisoformat(booking['start_date'])
                 existing_end = datetime.date.fromisoformat(booking['end_date'])
@@ -138,11 +152,18 @@ def check_collision(new_booking, all_bookings, all_equipment):
                 # Kontrola překryvu
                 if max(new_start, existing_start) <= min(new_end, existing_end):
                     overlapping_count += 1
+                    print(f"DEBUG: Found overlap with booking {booking.get('id', 'unknown')} (blocker={is_existing_booking_blocker})")
             except ValueError:
                 print(f"VAROVÁNÍ: Neplatná data v rezervaci {booking.get('id', 'unknown')}")
                 continue  # Přeskoč neplatná data
 
     print(f"DEBUG: {equipment_id} má {overlapping_count} překrývajících rezervací, max_tests={max_tests}")
+    
+    # DŮLEŽITÉ: Pokud vytváříme/editujeme BLOCKER → NIKDY neblokuj kapacitu!
+    if new_booking.get('is_blocker', False):
+        print(f"DEBUG: Blocker booking - ignoring capacity check")
+        return False  # Blocker nikdy neblokuje kapacitu
+    
     return overlapping_count >= max_tests
 
 @app.route('/api/bookings', methods=['POST'])
