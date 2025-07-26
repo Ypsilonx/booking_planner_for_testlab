@@ -12,15 +12,19 @@ document.addEventListener('DOMContentLoaded', function() {
     let yearDates = [];
     let rowHeights = [];
     
-    // Systém pro uchování vlastních kapacit a názvů
+    // Systém pro uchování vlastních kapacit, názvů, statusů a kategorií
     let customCapacities = new Map(); // Map<equipment_id, custom_capacity>
     let customEquipmentNames = new Map(); // Map<equipment_id, custom_name>
+    let customEquipmentStatuses = new Map(); // Map<equipment_id, custom_status>
+    let customEquipmentCategories = new Map(); // Map<equipment_id, custom_category>
 
     // Funkce pro ukládání a načítání custom nastavení
     function saveCustomSettings() {
         const settings = {
             capacities: Array.from(customCapacities.entries()),
-            names: Array.from(customEquipmentNames.entries())
+            names: Array.from(customEquipmentNames.entries()),
+            statuses: Array.from(customEquipmentStatuses.entries()),
+            categories: Array.from(customEquipmentCategories.entries())
         };
         localStorage.setItem('equipment_custom_settings', JSON.stringify(settings));
     }
@@ -32,15 +36,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 const settings = JSON.parse(saved);
                 customCapacities = new Map(settings.capacities || []);
                 customEquipmentNames = new Map(settings.names || []);
+                customEquipmentStatuses = new Map(settings.statuses || []);
+                customEquipmentCategories = new Map(settings.categories || []);
             }
         } catch (error) {
             console.error('Chyba při načítání custom nastavení:', error);
             customCapacities = new Map();
             customEquipmentNames = new Map();
+            customEquipmentStatuses = new Map();
+            customEquipmentCategories = new Map();
         }
     } 
 
-    const DAY_WIDTH = 100;
+    const DAY_WIDTH = 140; // Zvětšeno z 100 na 140 pro lepší zobrazení booking čísel
     const HEADER_HEIGHT = 60;
     const BASE_ROW_HEIGHT = 60;
     const LANE_HEIGHT = 40;
@@ -81,9 +89,10 @@ document.addEventListener('DOMContentLoaded', function() {
         
         document.getElementById('equipment-modal-title').textContent = 'Upravit zařízení';
         document.getElementById('equipment-id').value = equipRow.id;
-        document.getElementById('equipment-name').value = equipRow.name;
-        document.getElementById('equipment-category').value = equipRow.category || '';
-        document.getElementById('equipment-capacity').value = equipRow.max_tests;
+        document.getElementById('equipment-name').value = customEquipmentNames.get(equipRow.id) || equipRow.name;
+        document.getElementById('equipment-category').value = customEquipmentCategories.get(equipRow.id) || equipRow.category || '';
+        document.getElementById('equipment-status').value = customEquipmentStatuses.get(equipRow.id) || equipRow.status || 'active';
+        document.getElementById('equipment-capacity').value = customCapacities.get(equipRow.id) ?? equipRow.max_tests;
         
         // Zobraz sides section jen pro editaci existujícího
         document.getElementById('sides-section').style.display = 'block';
@@ -147,13 +156,14 @@ document.addEventListener('DOMContentLoaded', function() {
     function createNewEquipment() {
         const name = document.getElementById('new-equipment-name').value;
         const category = document.getElementById('new-equipment-category').value;
+        const status = document.getElementById('new-equipment-status').value;
         const capacity = parseInt(document.getElementById('new-equipment-capacity').value);
         const sides = parseInt(document.getElementById('new-equipment-sides').value);
         
         // Vytvoř nové zařízení v allEquipmentData
         const newEquipment = {
             name: name,
-            status: 'active',
+            status: status,
             sides: sides,
             max_tests: capacity,
             category: category
@@ -185,14 +195,14 @@ document.addEventListener('DOMContentLoaded', function() {
         const equipId = document.getElementById('equipment-id').value;
         const newName = document.getElementById('equipment-name').value;
         const newCategory = document.getElementById('equipment-category').value;
+        const newStatus = document.getElementById('equipment-status').value;
         const newCapacity = parseInt(document.getElementById('equipment-capacity').value);
         
         // Ulož změny do custom nastavení
         customEquipmentNames.set(equipId, newName);
         customCapacities.set(equipId, newCapacity);
-        
-        // TODO: Přidat podporu pro změnu kategorie
-        // Pro nyní pouze lokální změny, bez ukládání kategorií
+        customEquipmentCategories.set(equipId, newCategory);
+        customEquipmentStatuses.set(equipId, newStatus);
         
         // Ulož všechny změny ze sides-management
         const sideItems = document.querySelectorAll('.side-item');
@@ -363,72 +373,124 @@ document.addEventListener('DOMContentLoaded', function() {
 
         equipmentSidebar.innerHTML = '';
         gridElement.innerHTML = '';
+        
+        // Sidebar header - sticky header
         const sidebarHeader = document.createElement('div');
         sidebarHeader.className = 'sidebar-header';
-        sidebarHeader.style.height = `${HEADER_HEIGHT}px`;
+        sidebarHeader.textContent = 'Zařízení';
         equipmentSidebar.appendChild(sidebarHeader);
 
         allEquipmentRows.forEach((equipRow, index) => {
             const item = document.createElement('div');
             item.className = 'equipment-item';
+            // DŮLEŽITÉ: Nastavit stejnou výšku jako má grid row
             item.style.height = `${rowHeights[index]}px`;
-            const statusDot = document.createElement('div');
-            statusDot.className = `status-dot status-${(equipRow.status || 'active').toLowerCase()}`;
-            const nameSpan = document.createElement('span');
+            item.style.minHeight = `${rowHeights[index]}px`;
+            item.style.maxHeight = `${rowHeights[index]}px`;
+            item.style.boxSizing = 'border-box';
+            
+            // Status indikátor
+            const statusIndicator = document.createElement('div');
+            statusIndicator.className = 'equipment-status';
+            
+            // Určení statusu: out-of-order, in-use (dnes), available
+            let statusClass = 'available';
+            const currentStatus = customEquipmentStatuses.get(equipRow.id) || equipRow.status;
+            
+            if (currentStatus === 'out-of-order') {
+                statusClass = 'out-of-order';
+            } else {
+                // Zkontroluj jestli běží dnes nějaký booking
+                const today = new Date().toISOString().split('T')[0];
+                const hasBookingToday = allBookings.some(booking => 
+                    booking.equipment_id === equipRow.id &&
+                    booking.start_date <= today &&
+                    booking.end_date >= today
+                );
+                if (hasBookingToday) {
+                    statusClass = 'in-use';
+                }
+            }
+            statusIndicator.classList.add(statusClass);
+            
+            // Obsah
+            const content = document.createElement('div');
+            content.className = 'equipment-content';
+            
+            // Název
+            const nameSpan = document.createElement('div');
             nameSpan.className = 'equipment-name';
-            nameSpan.textContent = equipRow.name;
+            nameSpan.textContent = customEquipmentNames.get(equipRow.id) || equipRow.name;
             nameSpan.title = 'Dvojklik pro editaci názvu nebo pokročilé nastavení';
+            
+            // Details řádek
+            const details = document.createElement('div');
+            details.className = 'equipment-details';
+            
+            // Kategorie
+            const categorySpan = document.createElement('span');
+            const currentCategory = customEquipmentCategories.get(equipRow.id) || equipRow.category;
+            categorySpan.textContent = currentCategory || '';
+            categorySpan.style.fontStyle = 'italic';
+            categorySpan.style.color = 'var(--text-secondary-color)';
+            
+            // Kapacita
+            const maxTestsSpan = document.createElement('span');
+            maxTestsSpan.className = 'equipment-capacity';
+            const currentCapacity = customCapacities.get(equipRow.id) ?? equipRow.max_tests;
+            maxTestsSpan.textContent = `${currentCapacity}`;
+            maxTestsSpan.title = 'Klikni pro změnu kapacity';
             
             // Přidej double-click editaci názvu
             nameSpan.ondblclick = function(e) {
                 e.stopPropagation();
                 showEquipmentModal(equipRow);
             };
-            
-            item.appendChild(statusDot);
-            item.appendChild(nameSpan);
 
-            if (equipRow.max_tests) {
-                const maxTestsSpan = document.createElement('span');
-                maxTestsSpan.className = 'max-tests-info';
-                maxTestsSpan.textContent = `${equipRow.max_tests}`;
-                maxTestsSpan.title = 'Klikněte pro úpravu kapacity';
+            // Přidej inline editaci kapacity
+            maxTestsSpan.onclick = function(e) {
+                e.stopPropagation();
+                const input = document.createElement('input');
+                input.className = 'max-tests-input';
+                input.type = 'number';
+                input.min = '0';
+                input.max = '10';
+                input.value = currentCapacity;
+                input.style.width = '40px';
+                input.style.padding = '2px 4px';
+                input.style.border = '1px solid var(--border-color)';
+                input.style.borderRadius = '4px';
+                input.style.background = 'white';
+                input.style.color = 'black';
                 
-                // Přidej inline editaci kapacity
-                maxTestsSpan.onclick = function(e) {
-                    e.stopPropagation();
-                    const input = document.createElement('input');
-                    input.className = 'max-tests-input';
-                    input.type = 'number';
-                    input.min = '0';
-                    input.max = '10';
-                    input.value = equipRow.max_tests;
-                    
-                    input.onblur = function() {
-                        const newValue = Math.max(0, Math.min(10, parseInt(input.value) || 0));
-                        equipRow.max_tests = newValue;
-                        // Ulož do custom nastavení
-                        customCapacities.set(equipRow.id, newValue);
-                        saveCustomSettings();
-                        maxTestsSpan.textContent = `${newValue}`;
-                        item.replaceChild(maxTestsSpan, input);
-                    };
-                    
-                    input.onkeydown = function(e) {
-                        if (e.key === 'Enter') input.blur();
-                        if (e.key === 'Escape') {
-                            maxTestsSpan.textContent = `${equipRow.max_tests}`;
-                            item.replaceChild(maxTestsSpan, input);
-                        }
-                    };
-                    
-                    item.replaceChild(input, maxTestsSpan);
-                    input.focus();
-                    input.select();
+                input.onblur = function() {
+                    const newValue = Math.max(0, Math.min(10, parseInt(input.value) || 0));
+                    customCapacities.set(equipRow.id, newValue);
+                    saveCustomSettings();
+                    maxTestsSpan.textContent = `${newValue}`;
+                    details.replaceChild(maxTestsSpan, input);
                 };
                 
-                item.appendChild(maxTestsSpan);
-            }
+                input.onkeydown = function(e) {
+                    if (e.key === 'Enter') input.blur();
+                    if (e.key === 'Escape') {
+                        maxTestsSpan.textContent = `${currentCapacity}`;
+                        details.replaceChild(maxTestsSpan, input);
+                    }
+                };
+                
+                details.replaceChild(input, maxTestsSpan);
+                input.focus();
+                input.select();
+            };
+            
+            // Sestavit strukturu
+            details.appendChild(categorySpan);
+            details.appendChild(maxTestsSpan);
+            content.appendChild(nameSpan);
+            content.appendChild(details);
+            item.appendChild(statusIndicator);
+            item.appendChild(content);
             equipmentSidebar.appendChild(item);
         });
 
@@ -440,9 +502,21 @@ document.addEventListener('DOMContentLoaded', function() {
         yearDates.forEach(date => {
             const dateHeader = document.createElement('div');
             dateHeader.className = 'date-header';
-            if (['So', 'Ne'].includes(date.toLocaleDateString('cs-CZ', { weekday: 'short' }))) dateHeader.classList.add('weekend');
+            const dayOfWeek = date.toLocaleDateString('cs-CZ', { weekday: 'short' });
+            const isWeekend = ['So', 'Ne'].includes(dayOfWeek);
+            
+            if (isWeekend) dateHeader.classList.add('weekend');
             if (date.getTime() === today.getTime()) dateHeader.classList.add('today');
-            dateHeader.innerHTML = `<span>${date.getUTCDate()}.${date.getUTCMonth() + 1}.</span><span class="day-name">${date.toLocaleDateString('cs-CZ', { weekday: 'short' })}</span>`;
+            
+            // Přidej číslo týdne pro pondělky
+            const isMonday = date.getUTCDay() === 1;
+            const weekNumber = isMonday ? `T${getWeekNumber(date)}` : '';
+            
+            dateHeader.innerHTML = `
+                <span class="date-main">${date.getUTCDate()}.${date.getUTCMonth() + 1}.</span>
+                <span class="day-name">${dayOfWeek}</span>
+                ${weekNumber ? `<span class="week-number">${weekNumber}</span>` : ''}
+            `;
             fragment.appendChild(dateHeader);
         });
         let totalCells = 0;
@@ -840,15 +914,44 @@ document.addEventListener('DOMContentLoaded', function() {
     function diffInDays(d1, d2) { return Math.round((d2.valueOf() - d1.valueOf()) / (24 * 3600 * 1000)); }
     function stringToColor(str) { let hash = 0; for (let i = 0; i < str.length; i++) { hash = str.charCodeAt(i) + ((hash << 5) - hash); } let color = '#'; for (let i = 0; i < 3; i++) { const value = (hash >> (i * 8)) & 0xFF; color += ('00' + (Math.floor(value * 0.6) + 70).toString(16)).substr(-2); } return color; }
 
+    // Navigační funkce pro kalendář
+    function getWeekNumber(date) {
+        const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+        const dayNum = d.getUTCDay() || 7;
+        d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+        const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+        return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+    }
+    
+    function scrollToToday() {
+        const today = normalizeDate(new Date());
+        const todayIndex = yearDates.findIndex(date => date.getTime() === today.getTime());
+        if (todayIndex !== -1) {
+            const viewport = document.getElementById('timeline-viewport') || document.querySelector('.timeline-viewport');
+            const scrollLeft = todayIndex * DAY_WIDTH - (viewport.clientWidth / 2) + (DAY_WIDTH / 2);
+            viewport.scrollTo({ left: Math.max(0, scrollLeft), behavior: 'smooth' });
+        }
+    }
+    
+    function navigateCalendar(days) {
+        const viewport = document.getElementById('timeline-viewport') || document.querySelector('.timeline-viewport');
+        const currentScroll = viewport.scrollLeft;
+        const newScroll = currentScroll + (days * DAY_WIDTH);
+        viewport.scrollTo({ left: Math.max(0, newScroll), behavior: 'smooth' });
+    }
+
     async function init() {
-        // Synchronizace scrollování mezi sidebar a grid
+        // Synchronizace scrollování: pouze grid -> sidebar
+        // Sidebar NEMÁ vlastní scroll, ale má scrollTop pro synchronizaci
         gridWrapper.addEventListener('scroll', () => { 
             equipmentSidebar.scrollTop = gridWrapper.scrollTop; 
         });
         
-        equipmentSidebar.addEventListener('scroll', () => {
-            gridWrapper.scrollTop = equipmentSidebar.scrollTop;
-        });
+        // Zablokování wheel eventu na equipment sidebar
+        equipmentSidebar.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+        }, { passive: false });
         
         // Equipment modal event listeners
         document.getElementById('equipment-form').addEventListener('submit', (e) => {
@@ -905,19 +1008,20 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         
+        // Navigační tlačítka pro kalendář
+        document.getElementById('today-btn').addEventListener('click', scrollToToday);
+        document.getElementById('prev-3days-btn').addEventListener('click', () => navigateCalendar(-3));
+        document.getElementById('next-3days-btn').addEventListener('click', () => navigateCalendar(3));
+        document.getElementById('prev-week-btn').addEventListener('click', () => navigateCalendar(-7));
+        document.getElementById('next-week-btn').addEventListener('click', () => navigateCalendar(7));
+        
         await fetchData();
         const currentYear = new Date().getFullYear();
         yearDates = getDatesForYear(currentYear);
         render();
-        setTimeout(() => {
-            const today = normalizeDate(new Date());
-            const todayIndex = diffInDays(yearDates[0], today);
-            if (todayIndex >= 0) {
-                const viewport = document.querySelector('.timeline-viewport');
-                const scrollLeft = todayIndex * DAY_WIDTH - (viewport.clientWidth / 2) + (DAY_WIDTH / 2);
-                viewport.scrollLeft = Math.max(0, scrollLeft);
-            }
-        }, 0);
+        
+        // Automaticky skroluj na dnešní datum při načtení
+        setTimeout(scrollToToday, 100);
     }
     init();
 });

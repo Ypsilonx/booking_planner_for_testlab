@@ -2,11 +2,11 @@
     "bookings": [
         {
             "description": "EU-SVA-123456-25 Calfrest FREEPLAY",
-            "end_date": "2025-07-26",
+            "end_date": "2025-07-28",
             "equipment_id": "Meas. place Big linak",
             "id": 112,
-            "lane": 0,
-            "start_date": "2025-07-26"
+            "start_date": "2025-07-27",
+            "lane": 0
         },
         {
             "description": "EU-SVA-987654-25 STV",
@@ -14,40 +14,55 @@
             "equipment_id": "Meas. place Big linak",
             "id": 113,
             "lane": 0,
-            "start_date": "2025-07-26"
+            "start_date": "2025-07-23"
         },
         {
             "description": "EU-SVA-785678-25 dggdfsgsdfgsdf",
-            "end_date": "2025-07-26",
+            "end_date": "2025-07-27",
             "equipment_id": "Meas. place Big linak",
             "id": 114,
-            "lane": 0,
-            "start_date": "2025-07-26"
+            "lane": 1,
+            "start_date": "2025-07-24"
         },
         {
             "description": "EU-SVA-785785-25 xfhxfhxhghsdfh",
             "end_date": "2025-07-26",
             "equipment_id": "Meas. place Big linak",
             "id": 115,
-            "lane": 0,
-            "start_date": "2025-07-26"
+            "lane": 2,
+            "start_date": "2025-07-24"
         },
         {
             "description": "EU-SVA-454545-25 456546456456",
-            "end_date": "2025-07-26",
+            "end_date": "2025-07-30",
             "equipment_id": "Meas. place Big linak",
             "id": 116,
-            "lane": 0,
+            "lane": 3,
             "start_date": "2025-07-26"
         },
         {
             "description": "EU-SVA-786767-25 746786786",
-            "end_date": "2025-07-26",
+            "end_date": "2025-07-29",
             "equipment_id": "Meas. place Big linak",
             "id": 117,
-            "lane": 0,
-            "start_date": "2025-07-26"
+            "lane": 4,
+            "start_date": "2025-07-25"
+        },
+        {
+            "description": "EU-SVA-654321-25 BL5 - SLV DT",
+            "start_date": "2025-07-29",
+            "end_date": "2025-08-15",
+            "equipment_id": "TisNg Electric 2 - Strana 1",
+            "id": 118
+        },
+        {
+            "description": "EU-SVA-111111-25 BL5 SHV + SLV hard-DT",
+            "end_date": "2025-09-07",
+            "equipment_id": "TisNg Electric 3 - Strana 1",
+            "id": 119,
+            "start_date": "2025-07-28",
+            "lane": 0
         }
     ],
-    "next_booking_id": 118
+    "next_booking_id": 120
 }

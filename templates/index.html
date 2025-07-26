@@ -10,7 +10,41 @@
 <body>
     <header class="header">
         <h1>Rezervační systém</h1>
-        <div class="header-buttons">
+        <div class="header-actions">
+            <!-- Navigační tlačítka pro kalendář -->
+            <div class="calendar-navigation">
+                <button id="prev-week-btn" class="btn btn-secondary" title="Předchozí týden">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z"/>
+                    </svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z"/>
+                    </svg>
+                </button>
+                <button id="prev-3days-btn" class="btn btn-secondary" title="3 dny zpět">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z"/>
+                    </svg>
+                    3
+                </button>
+                <button id="today-btn" class="btn btn-primary" title="Dnešní datum">DNES</button>
+                <button id="next-3days-btn" class="btn btn-secondary" title="3 dny vpřed">
+                    3
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
+                    </svg>
+                </button>
+                <button id="next-week-btn" class="btn btn-secondary" title="Další týden">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
+                    </svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Původní tlačítka -->
             <button id="add-equipment-button" class="btn btn-secondary">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                     <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
@@ -110,6 +144,14 @@
                 </div>
 
                 <div>
+                    <label for="equipment-status">Stav zařízení</label>
+                    <select id="equipment-status" required>
+                        <option value="active">Aktivní (dostupné)</option>
+                        <option value="out-of-order">Mimo provoz</option>
+                    </select>
+                </div>
+
+                <div>
                     <label for="equipment-capacity">Kapacita (počet testů)</label>
                     <input type="number" id="equipment-capacity" min="0" max="10" required>
                 </div>
@@ -149,6 +191,14 @@
                         <option value="Durability">Durability</option>
                         <option value="Measuring">Measuring</option>
                         <option value="Special Stand">Special Stand</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="new-equipment-status">Stav zařízení</label>
+                    <select id="new-equipment-status" required>
+                        <option value="active">Aktivní (dostupné)</option>
+                        <option value="out-of-order">Mimo provoz</option>
                     </select>
                 </div>
 
