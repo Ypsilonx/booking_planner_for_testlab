@@ -269,6 +269,7 @@ def create_project():
     
     # Přidání defaultních hodnot
     new_project['active'] = new_project.get('active', True)
+    new_project['textColor'] = new_project.get('textColor', '#ffffff')
     
     projects_data['projects'].append(new_project)
     

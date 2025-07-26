@@ -689,7 +689,6 @@ document.addEventListener('DOMContentLoaded', function() {
     function showModal(booking = null) {
         modalForm.reset();
         const equipSelect = document.getElementById('booking-equip');
-        const bothSpacesContainer = document.getElementById('both-spaces-container');
         const yearSpan = document.getElementById('eusuva-year');
         const currentYear = new Date().getFullYear().toString().slice(-2);
         yearSpan.textContent = `-${currentYear}`;
@@ -698,24 +697,15 @@ document.addEventListener('DOMContentLoaded', function() {
         const projectInput = document.getElementById('booking-project');
         const startDateInput = document.getElementById('booking-start');
         const endDateInput = document.getElementById('booking-end');
-        const bothSpacesCheckbox = document.getElementById('booking-both-spaces');
         const submitButton = modalForm.querySelector('button[type="submit"]');
 
-        equipSelect.innerHTML = allEquipmentData.map(e => `<option value="${e.name}">${e.name}</option>`).join('');
+        equipSelect.innerHTML = '<option value="">Vyberte zařízení</option>' + 
+            allEquipmentRows.map(row => `<option value="${row.id}">${row.name}</option>`).join('');
 
-        const handleEquipChange = () => {
-            const selectedEquipName = equipSelect.value;
-            const selectedEquipData = allEquipmentData.find(e => e.name === selectedEquipName);
-            if (selectedEquipData && selectedEquipData.sides > 1) {
-                bothSpacesContainer.style.display = 'flex';
-            } else {
-                bothSpacesContainer.style.display = 'none';
-                bothSpacesCheckbox.checked = false;
-            }
-        };
-        
-        equipSelect.removeEventListener('change', handleEquipChange);
-        equipSelect.addEventListener('change', handleEquipChange);
+        // Naplň projekt dropdown s aktivními projekty
+        const activeProjects = allProjects.filter(p => p.active);
+        projectInput.innerHTML = '<option value="">Vyberte projekt</option>' + 
+            activeProjects.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
 
         if (booking) {
             // --- Logika pro editaci existující rezervace ---
@@ -723,33 +713,52 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('delete-button').style.display = 'block';
             document.getElementById('booking-id').value = booking.id;
 
-            // Rozparsujeme popis
+            // Nastavení projektu - použij booking.project_name pokud existuje
+            let projectToSet = '';
+            
+            if (booking.project_name) {
+                // Zkontroluj, zda projekt existuje v aktivních projektech
+                const projectExists = activeProjects.some(p => p.name === booking.project_name);
+                if (projectExists) {
+                    projectToSet = booking.project_name;
+                }
+            }
+            
+            // Pokud se nepodařilo najít projekt v project_name, zkus parsovat z description
+            if (!projectToSet) {
+                const descRegex = /EU-SVA-(\d{6})-(\d{2})\s([^-]+)(?:\s-\s(.*))?/;
+                const match = booking.description.match(descRegex);
+                if (match) {
+                    const projectFromDesc = match[3].trim();
+                    const projectExists = activeProjects.some(p => p.name === projectFromDesc);
+                    if (projectExists) {
+                        projectToSet = projectFromDesc;
+                    }
+                }
+            }
+            
+            // Nastavíme hodnoty do formuláře
             const descRegex = /EU-SVA-(\d{6})-(\d{2})\s([^-]+)(?:\s-\s(.*))?/;
             const match = booking.description.match(descRegex);
             if (match) {
                 euSvaInput.value = match[1];
-                projectInput.value = match[3];
+                
                 if (match[4]) {
                     document.getElementById('booking-note').value = match[4];
                 }
-            } else {
-                projectInput.value = booking.description; // Fallback
             }
+            
+            // Nastavíme projekt až na konci
+            projectInput.value = projectToSet;
             
             // Načti poznámku z booking objektu pokud existuje
             if (booking.note) {
                 document.getElementById('booking-note').value = booking.note;
             }
             
-            // Načti barvu a styl projektu
-            if (booking.project_color) {
-                document.getElementById('booking-project-color').value = booking.project_color;
-            } else if (booking.project_name) {
-                document.getElementById('booking-project-color').value = getProjectColor(booking.project_name);
-            }
+            // Už nepotrebujeme načítať barvu do color pickeru, používame project settings
             
             if (booking.text_style) {
-                document.getElementById('booking-text-color').value = booking.text_style.color || '#ffffff';
                 document.getElementById('booking-font-size').value = booking.text_style.fontSize || '14px';
                 document.getElementById('booking-text-bold').checked = booking.text_style.bold || false;
                 document.getElementById('booking-text-italic').checked = booking.text_style.italic || false;
@@ -760,33 +769,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('booking-display-text').value = booking.description;
             }
             
-            // Najdeme základní zařízení
-            const equipRow = allEquipmentRows.find(r => r.id === booking.equipment_id);
-            if (equipRow) {
-                equipSelect.value = equipRow.base_name;
-                
-                // Určíme stranu zařízení
-                const selectedEquipData = allEquipmentData.find(e => e.name === equipRow.base_name);
-                if (selectedEquipData && selectedEquipData.sides > 1) {
-                    const equipmentSideContainer = document.getElementById('equipment-side-container');
-                    const equipmentSideSelect = document.getElementById('booking-equipment-side');
-                    equipmentSideContainer.style.display = 'block';
-                    
-                    if (booking.equipment_id.includes('Strana 1') || booking.equipment_id.includes('Prostor 1')) {
-                        equipmentSideSelect.value = 'A';
-                    } else if (booking.equipment_id.includes('Strana 2') || booking.equipment_id.includes('Prostor 2') || booking.equipment_id.includes('PNEUMATIKA')) {
-                        equipmentSideSelect.value = 'B';
-                    }
-                }
-            }
+            // Najdeme konkrétní zařízení/stranu
+            equipSelect.value = booking.equipment_id;
 
             startDateInput.value = booking.start_date;
             endDateInput.value = booking.end_date;
 
             // Povolíme editaci všech polí
-            [euSvaInput, projectInput, equipSelect, bothSpacesCheckbox, startDateInput, endDateInput].forEach(el => el.disabled = false);
+            [euSvaInput, projectInput, equipSelect, startDateInput, endDateInput].forEach(el => el.disabled = false);
             submitButton.style.display = 'inline-flex';
             submitButton.textContent = 'Aktualizovat';
+            
+            // DÔLEŽITÉ: Inicializuj formulár až po nastavení hodnôt
+            initializeFormElements();
+            
+            // Aktualizuj náhľad formátu po načítaní dat
+            updateFormatPreview();
 
         } else {
             // Nová rezervace
@@ -799,62 +797,69 @@ document.addEventListener('DOMContentLoaded', function() {
             endDateInput.value = today;
             
             // Povolíme všechna pole a tlačítko Uložit
-            [euSvaInput, projectInput, equipSelect, bothSpacesCheckbox, startDateInput, endDateInput].forEach(el => el.disabled = false);
+            [euSvaInput, projectInput, equipSelect, startDateInput, endDateInput].forEach(el => el.disabled = false);
             submitButton.style.display = 'inline-flex';
+            
+            // Inicializuj formulár pre novú rezerváciu
+            initializeFormElements();
         }
         
-        // Inicializuj nové prvky formuláře
-        initializeFormElements();
-        
-        handleEquipChange();
         modal.classList.add('visible');
     }
 
     function initializeFormElements() {
-        // Naplň dropdown s projekty ze serveru
-        const projectPresetSelect = document.getElementById('booking-project-preset');
-        const activeProjects = allProjects.filter(p => p.active);
-        projectPresetSelect.innerHTML = '<option value="">Vyberte předvolbu projektu</option>' +
-            activeProjects.map(p => `<option value="${p.name}" data-color="${p.color}">${p.name}</option>`).join('');
-        
-        // Event listener pro výběr předvolby projektu
-        projectPresetSelect.addEventListener('change', function() {
-            if (this.value) {
-                document.getElementById('booking-project').value = this.value;
-                const selectedOption = this.options[this.selectedIndex];
-                document.getElementById('booking-project-color').value = selectedOption.dataset.color;
-                updateDisplayText();
-            }
-        });
-        
-        // Event listener pro změnu názvu projektu a poznámky
+        // Event listeners pro aktualizaci náhľadu
+        document.getElementById('booking-project').addEventListener('change', updateFormatPreview);
         document.getElementById('booking-project').addEventListener('input', updateDisplayText);
-        document.getElementById('booking-eusuva').addEventListener('input', updateDisplayText);
-        document.getElementById('booking-note').addEventListener('input', updateDisplayText);
+        document.getElementById('booking-note').addEventListener('input', updateFormatPreview);
+        document.getElementById('booking-text-bold').addEventListener('change', updateFormatPreview);
+        document.getElementById('booking-text-italic').addEventListener('change', updateFormatPreview);
+        document.getElementById('booking-font-size').addEventListener('change', updateFormatPreview);
         
-        // Event listener pro výběr strany zařízení
-        const equipSelect = document.getElementById('booking-equip');
-        const equipmentSideContainer = document.getElementById('equipment-side-container');
-        const equipmentSideSelect = document.getElementById('booking-equipment-side');
-        
-        equipSelect.addEventListener('change', function() {
-            const selectedEquip = allEquipmentData.find(e => e.name === this.value);
-            if (selectedEquip && selectedEquip.sides > 1) {
-                equipmentSideContainer.style.display = 'block';
-                equipmentSideSelect.required = true;
-            } else {
-                equipmentSideContainer.style.display = 'none';
-                equipmentSideSelect.required = false;
-                equipmentSideSelect.value = 'A'; // Default
-            }
-        });
-        
-        // Inicializuj defaultní hodnoty
-        document.getElementById('booking-project-color').value = '#4a90e2';
-        document.getElementById('booking-text-color').value = '#ffffff';
+        // Inicializuj defaultní hodnoty  
         document.getElementById('booking-font-size').value = '14px';
         
         updateDisplayText();
+        updateFormatPreview();
+    }
+    
+    function updateFormatPreview() {
+        const formatPreview = document.getElementById('format-preview');
+        if (!formatPreview) return;
+        
+        const projectName = document.getElementById('booking-project').value;
+        const note = document.getElementById('booking-note').value;
+        
+        if (!projectName) {
+            formatPreview.textContent = 'Vyberte projekt pre náhľad';
+            formatPreview.style.background = '#f8f9fa';
+            formatPreview.style.color = '#666';
+            return;
+        }
+        
+        // Najdi projekt
+        const project = allProjects.find(p => p.name === projectName);
+        if (!project) {
+            formatPreview.textContent = projectName + (note ? ` - ${note}` : '');
+            formatPreview.style.background = '#4a90e2';
+            formatPreview.style.color = '#ffffff';
+        } else {
+            formatPreview.textContent = projectName + (note ? ` - ${note}` : '');
+            formatPreview.style.background = project.color;
+            formatPreview.style.color = project.textColor || '#ffffff';
+        }
+        
+        // Aplikuj štýl textu
+        const isBold = document.getElementById('booking-text-bold')?.checked;
+        const isItalic = document.getElementById('booking-text-italic')?.checked;
+        const fontSize = document.getElementById('booking-font-size')?.value || '14px';
+        
+        let fontWeight = isBold ? 'bold' : 'normal';
+        let fontStyle = isItalic ? 'italic' : 'normal';
+        
+        formatPreview.style.fontWeight = fontWeight;
+        formatPreview.style.fontStyle = fontStyle;
+        formatPreview.style.fontSize = fontSize;
     }
     
     function updateDisplayText() {
@@ -882,13 +887,15 @@ document.addEventListener('DOMContentLoaded', function() {
         const bookingId = document.getElementById('booking-id').value;
         const euSvaNum = document.getElementById('booking-eusuva').value;
         const projectName = document.getElementById('booking-project').value;
-        const projectColor = document.getElementById('booking-project-color').value;
+        
+        // Získaj farbu a textColor z projektu
+        const project = allProjects.find(p => p.name === projectName);
+        const projectColor = project ? project.color : '#4a90e2';
+        const projectTextColor = project ? project.textColor || '#ffffff' : '#ffffff';
+        
         const note = document.getElementById('booking-note').value;
-        const baseEquipName = document.getElementById('booking-equip').value;
-        const equipmentSide = document.getElementById('booking-equipment-side').value;
-        const takeBothSpaces = document.getElementById('booking-both-spaces').checked;
+        const selectedEquipmentId = document.getElementById('booking-equip').value;
         const customDisplayText = document.getElementById('booking-display-text').value;
-        const textColor = document.getElementById('booking-text-color').value;
         const fontSize = document.getElementById('booking-font-size').value;
         const textBold = document.getElementById('booking-text-bold').checked;
         const textItalic = document.getElementById('booking-text-italic').checked;
@@ -898,7 +905,7 @@ document.addEventListener('DOMContentLoaded', function() {
         customProjects.set(projectName, {
             color: projectColor,
             textStyle: {
-                color: textColor,
+                color: projectTextColor,
                 fontSize: fontSize,
                 bold: textBold,
                 italic: textItalic
@@ -918,7 +925,7 @@ document.addEventListener('DOMContentLoaded', function() {
             project_color: projectColor,
             note: note,
             text_style: {
-                color: textColor,
+                color: projectTextColor,
                 fontSize: fontSize,
                 bold: textBold,
                 italic: textItalic
@@ -938,10 +945,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
+            if (!selectedEquipmentId) {
+                alert('Prosím vyberte zařízení.');
+                return;
+            }
+
             const updatedBooking = {
                 ...bookingBase,
                 id: parseInt(bookingId),
-                equipment_id: originalBooking.equipment_id // Zachováme původní equipment_id
+                equipment_id: selectedEquipmentId // Použijeme nově vybrané zařízení
             };
 
             const success = await updateBookingOnServer(updatedBooking);
@@ -952,62 +964,16 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         } else {
             // VYTVOŘENÍ nové rezervace
-            let bookingsToCreate = [];
-            const selectedEquipData = allEquipmentData.find(e => e.name === baseEquipName);
-            
-            if (selectedEquipData.sides > 1) {
-                if (equipmentSide === 'both' || takeBothSpaces) {
-                    // Hledání prvního a druhého prostoru/strany
-                    let space1_id, space2_id;
-                    
-                    if (selectedEquipData.name.includes('TisNg Hybrid')) {
-                        space1_id = allEquipmentRows.find(r => r.base_name === baseEquipName && r.id.includes('Strana 1'))?.id;
-                        space2_id = allEquipmentRows.find(r => r.base_name === baseEquipName && r.id.includes('PNEUMATIKA'))?.id;
-                    } else {
-                        const spaceLabel = selectedEquipData.name.toLowerCase().includes('climatic') ? 'Prostor' : 'Strana';
-                        space1_id = allEquipmentRows.find(r => r.base_name === baseEquipName && r.id.includes(`${spaceLabel} 1`))?.id;
-                        space2_id = allEquipmentRows.find(r => r.base_name === baseEquipName && r.id.includes(`${spaceLabel} 2`))?.id;
-                    }
-                    
-                    if (space1_id && space2_id) {
-                        bookingsToCreate.push({ ...bookingBase, equipment_id: space1_id });
-                        bookingsToCreate.push({ ...bookingBase, equipment_id: space2_id });
-                    } else {
-                        alert('Chyba: Nenalezeny oba prostory/strany pro vybrané zařízení.');
-                        return;
-                    }
-                } else {
-                    // Vyberte konkrétní stranu
-                    const spaceLabel = selectedEquipData.name.toLowerCase().includes('climatic') ? 'Prostor' : 'Strana';
-                    const sideNumber = equipmentSide === 'A' ? '1' : '2';
-                    let sideId;
-                    
-                    if (selectedEquipData.name.includes('TisNg Hybrid')) {
-                        sideId = equipmentSide === 'A' 
-                            ? allEquipmentRows.find(r => r.base_name === baseEquipName && r.id.includes('Strana 1'))?.id
-                            : allEquipmentRows.find(r => r.base_name === baseEquipName && r.id.includes('PNEUMATIKA'))?.id;
-                    } else {
-                        sideId = allEquipmentRows.find(r => r.base_name === baseEquipName && r.id.includes(`${spaceLabel} ${sideNumber}`))?.id;
-                    }
-                    
-                    if (sideId) {
-                        bookingsToCreate.push({ ...bookingBase, equipment_id: sideId });
-                    } else {
-                        alert(`Chyba: Nenalezena strana ${equipmentSide} pro vybrané zařízení.`);
-                        return;
-                    }
-                }
-            } else {
-                // Jednoprostrové zařízení
-                const equipRow = allEquipmentRows.find(r => r.base_name === baseEquipName);
-                bookingsToCreate.push({ ...bookingBase, equipment_id: equipRow.id });
+            if (!selectedEquipmentId) {
+                alert('Prosím vyberte zařízení.');
+                return;
             }
             
-            const promises = bookingsToCreate.map(b => createBookingOnServer(b));
-            const results = await Promise.all(promises);
+            const newBooking = { ...bookingBase, equipment_id: selectedEquipmentId };
+            const result = await createBookingOnServer(newBooking);
 
-            if (results.some(r => r === null)) {
-                alert('Chyba: Jedna nebo více rezervací se překrývá s jinou, byla překročena kapacita, nebo nastala jiná chyba. Zkontrolujte prosím kalendář.');
+            if (result === null) {
+                alert('Chyba: Rezervace se překrývá s jinou, byla překročena kapacita, nebo nastala jiná chyba. Zkontrolujte prosím kalendář.');
             } else {
                 await fetchData();
                 render();
@@ -1243,21 +1209,118 @@ document.addEventListener('DOMContentLoaded', function() {
         allProjects.forEach(project => {
             const item = document.createElement('div');
             item.className = 'project-item';
+            item.style.display = 'grid';
+            item.style.gridTemplateColumns = '2fr 80px 140px 80px 100px';
+            item.style.gap = '1rem';
+            item.style.alignItems = 'center';
+            item.style.padding = '0.5rem';
+            item.style.borderBottom = '1px solid #eee';
             
-            item.innerHTML = `
-                <div class="project-name">${project.name}</div>
-                <div class="project-color" style="background-color: ${project.color}" 
-                     onclick="editProjectColor('${project.name}', this)" title="Klik pro změnu barvy"></div>
-                <div class="project-status">
-                    <div class="status-toggle" onclick="toggleProjectStatus('${project.name}')">
-                        <div class="status-indicator ${project.active ? 'active' : 'inactive'}"></div>
-                        <span>${project.active ? 'Aktivní' : 'Neaktivní'}</span>
-                    </div>
-                </div>
-                <div class="project-actions">
-                    <button class="btn btn-danger" onclick="deleteProject('${project.name}')">Smazat</button>
-                </div>
-            `;
+            // Název projektu
+            const nameDiv = document.createElement('div');
+            nameDiv.className = 'project-name';
+            nameDiv.textContent = project.name;
+            nameDiv.style.fontWeight = 'bold';
+            
+            // Barva pozadí projektu
+            const colorDiv = document.createElement('div');
+            colorDiv.className = 'project-color';
+            colorDiv.style.backgroundColor = project.color;
+            colorDiv.style.width = '40px';
+            colorDiv.style.height = '40px';
+            colorDiv.style.borderRadius = '4px';
+            colorDiv.style.border = '2px solid #ddd';
+            colorDiv.style.cursor = 'pointer';
+            colorDiv.title = 'Klik pro změnu barvy pozadí';
+            colorDiv.addEventListener('click', () => editProjectColor(project.name, colorDiv));
+            
+            // Barva textu projektu
+            const textColorDiv = document.createElement('div');
+            textColorDiv.className = 'text-color-options';
+            textColorDiv.style.display = 'flex';
+            textColorDiv.style.gap = '0.5rem';
+            textColorDiv.style.alignItems = 'center';
+            
+            // Radio button pre biely text
+            const whiteRadio = document.createElement('input');
+            whiteRadio.type = 'radio';
+            whiteRadio.name = `textColor_${project.name}`;
+            whiteRadio.value = '#ffffff';
+            whiteRadio.checked = (project.textColor === '#ffffff' || !project.textColor);
+            whiteRadio.addEventListener('change', () => updateProjectTextColor(project.name, '#ffffff'));
+            
+            const whiteLabel = document.createElement('label');
+            whiteLabel.style.display = 'flex';
+            whiteLabel.style.alignItems = 'center';
+            whiteLabel.style.gap = '0.3rem';
+            whiteLabel.style.cursor = 'pointer';
+            
+            const whitePreview = document.createElement('span');
+            whitePreview.className = 'text-color-preview';
+            whitePreview.style.background = '#ffffff';
+            whitePreview.style.border = '2px solid #000';
+            
+            whiteLabel.appendChild(whiteRadio);
+            whiteLabel.appendChild(whitePreview);
+            whiteLabel.appendChild(document.createTextNode('Bílá'));
+            
+            // Radio button pre čierny text
+            const blackRadio = document.createElement('input');
+            blackRadio.type = 'radio';
+            blackRadio.name = `textColor_${project.name}`;
+            blackRadio.value = '#000000';
+            blackRadio.checked = (project.textColor === '#000000');
+            blackRadio.addEventListener('change', () => updateProjectTextColor(project.name, '#000000'));
+            
+            const blackLabel = document.createElement('label');
+            blackLabel.style.display = 'flex';
+            blackLabel.style.alignItems = 'center';
+            blackLabel.style.gap = '0.3rem';
+            blackLabel.style.cursor = 'pointer';
+            
+            const blackPreview = document.createElement('span');
+            blackPreview.className = 'text-color-preview';
+            blackPreview.style.background = '#000000';
+            blackPreview.style.border = '2px solid #ddd';
+            
+            blackLabel.appendChild(blackRadio);
+            blackLabel.appendChild(blackPreview);
+            blackLabel.appendChild(document.createTextNode('Černá'));
+            
+            textColorDiv.appendChild(whiteLabel);
+            textColorDiv.appendChild(blackLabel);
+            
+            // Aktivní status projektu
+            const statusDiv = document.createElement('div');
+            statusDiv.style.display = 'flex';
+            statusDiv.style.justifyContent = 'center';
+            
+            const statusCheckbox = document.createElement('input');
+            statusCheckbox.type = 'checkbox';
+            statusCheckbox.checked = project.active;
+            statusCheckbox.addEventListener('change', () => toggleProjectStatus(project.name));
+            
+            statusDiv.appendChild(statusCheckbox);
+            
+            // Akce - smazat
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'project-actions';
+            
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'btn btn-danger';
+            deleteBtn.textContent = 'Smazat';
+            deleteBtn.style.fontSize = '12px';
+            deleteBtn.style.padding = '4px 8px';
+            deleteBtn.addEventListener('click', () => deleteProject(project.name));
+            
+            actionsDiv.appendChild(deleteBtn);
+            
+            // Sestavení item
+            item.appendChild(nameDiv);
+            item.appendChild(colorDiv);
+            item.appendChild(textColorDiv);
+            item.appendChild(statusDiv);
+            item.appendChild(actionsDiv);
             
             container.appendChild(item);
         });
@@ -1268,16 +1331,59 @@ document.addEventListener('DOMContentLoaded', function() {
         input.type = 'color';
         input.value = colorElement.style.backgroundColor || '#4a90e2';
         
+        // Převedeme RGB na hex pokud je potřeba
+        const currentColor = colorElement.style.backgroundColor;
+        if (currentColor.startsWith('rgb')) {
+            const rgbMatch = currentColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+            if (rgbMatch) {
+                const hex = '#' + [rgbMatch[1], rgbMatch[2], rgbMatch[3]]
+                    .map(x => parseInt(x).toString(16).padStart(2, '0')).join('');
+                input.value = hex;
+            }
+        }
+        
         input.onchange = async function() {
             const success = await updateProjectOnServer(projectName, { color: input.value });
             if (success) {
                 colorElement.style.backgroundColor = input.value;
-                await loadProjectsFromServer();
-                renderProjectsList();
+                
+                // Aktualizuj všechny existující rezervace s tímto projektem
+                await updateExistingBookingsColor(projectName, input.value);
+                
+                await fetchData(); // Načti nová data včetně projektů
+                render(); // Znovu vykresli kalendář s novými barvami
+                renderProjectsList(); // Aktualizuj seznam projektů
             }
         };
         
         input.click();
+    }
+    
+    async function updateExistingBookingsColor(projectName, newColor) {
+        const bookingsToUpdate = allBookings.filter(booking => 
+            booking.project_name === projectName || 
+            (booking.description && booking.description.includes(projectName))
+        );
+        
+        const updatePromises = bookingsToUpdate.map(async (booking) => {
+            const updatedBooking = {
+                ...booking,
+                project_color: newColor
+            };
+            return await updateBookingOnServer(updatedBooking);
+        });
+        
+        await Promise.all(updatePromises);
+    }
+    
+    async function updateProjectTextColor(projectName, textColor) {
+        const success = await updateProjectOnServer(projectName, { textColor: textColor });
+        if (success) {
+            await loadProjectsFromServer();
+            renderProjectsList();
+            initializeFormElements(); // Refresh náhľadu
+            updateFormatPreview(); // Aktualizuj náhľad formátu
+        }
     }
     
     async function toggleProjectStatus(projectName) {
@@ -1385,18 +1491,37 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const name = document.getElementById('new-project-name').value.trim();
             const color = document.getElementById('new-project-color').value;
+            const textColorRadios = document.getElementsByName('new-project-text-color');
+            const active = document.getElementById('new-project-active').checked;
+            
+            let textColor = '#ffffff'; // default
+            for (const radio of textColorRadios) {
+                if (radio.checked) {
+                    textColor = radio.value;
+                    break;
+                }
+            }
             
             if (!name) {
                 alert('Zadejte název projektu');
                 return;
             }
             
-            const success = await createProjectOnServer({ name, color, active: true });
+            const success = await createProjectOnServer({ 
+                name, 
+                color, 
+                textColor, 
+                active 
+            });
             if (success) {
                 document.getElementById('new-project-name').value = '';
                 document.getElementById('new-project-color').value = '#4a90e2';
+                document.getElementById('new-project-active').checked = true;
+                // Reset radio buttons na bílou
+                document.querySelector('input[name="new-project-text-color"][value="#ffffff"]').checked = true;
                 await loadProjectsFromServer();
                 renderProjectsList();
+                initializeFormElements(); // Refresh formuláře
             }
         });
         

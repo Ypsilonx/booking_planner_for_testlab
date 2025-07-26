@@ -90,50 +90,34 @@
                         <label for="booking-eusuva">Číslo testu</label>
                         <div class="form-row-flex">
                             <span>EU-SVA-</span>
-                            <input type="text" id="booking-eusuva" required pattern="\d{6}" maxlength="6" placeholder="xxxxxx" title="Zadejte 6 číslic">
+                            <input type="text" id="booking-eusuva" required pattern="\d{6}" maxlength="6" placeholder="123456" title="Zadejte 6 číslic">
                             <span id="eusuva-year">-25</span>
                         </div>
                     </div>
                     
                     <div class="form-group">
                         <label for="booking-project">Projekt</label>
-                        <div class="project-row">
-                            <select id="booking-project-preset">
-                                <option value="">Vyberte projekt</option>
-                            </select>
-                            <input type="text" id="booking-project" required placeholder="nebo zadejte vlastní">
-                            <input type="color" id="booking-project-color" value="#4a90e2" title="Barva projektu">
-                        </div>
+                        <select id="booking-project" required>
+                            <option value="">Vyberte projekt</option>
+                        </select>
                     </div>
                 </div>
 
-                <!-- Poznámka -->
-                <div class="form-group">
-                    <label for="booking-note">Poznámka k testu</label>
-                    <input type="text" id="booking-note" placeholder="Volitelné vysvětlení o jaký test se jedná">
+                <!-- Poznámka - celá šířka -->
+                <div class="form-row-grid single-col">
+                    <div class="form-group">
+                        <label for="booking-note">Poznámka k testu <span style="color: #888; font-weight: normal;">(volitelné)</span></label>
+                        <input type="text" id="booking-note" placeholder="Krátké vysvětlení o jaký test se jedná">
+                    </div>
                 </div>
 
                 <!-- Zařízení řádek -->
                 <div class="form-row-grid">
                     <div class="form-group">
                         <label for="booking-equip">Zařízení</label>
-                        <select id="booking-equip" required></select>
-                    </div>
-
-                    <div class="form-group" id="equipment-side-container" style="display: none;">
-                        <label for="booking-equipment-side">Strana zařízení</label>
-                        <select id="booking-equipment-side">
-                            <option value="A">Strana A</option>
-                            <option value="B">Strana B</option>
-                            <option value="both">Obě strany</option>
+                        <select id="booking-equip" required>
+                            <option value="">Vyberte zařízení</option>
                         </select>
-                    </div>
-                    
-                    <div class="form-group checkbox-group" id="both-spaces-container" style="display: none;">
-                        <label>
-                            <input type="checkbox" id="booking-both-spaces">
-                            Zabrat oba prostory
-                        </label>
                     </div>
                 </div>
 
@@ -158,17 +142,24 @@
                         <textarea id="booking-display-text" placeholder="Nechte prázdné pro automatické generování" rows="2"></textarea>
                     </div>
 
-                    <div class="form-group">
-                        <label>Styl textu</label>
-                        <div class="text-style-controls">
-                            <input type="color" id="booking-text-color" value="#ffffff" title="Barva textu">
-                            <select id="booking-font-size">
-                                <option value="12px">Malé</option>
-                                <option value="14px" selected>Normální</option>
-                                <option value="16px">Větší</option>
-                            </select>
-                            <label><input type="checkbox" id="booking-text-bold"> Tučné</label>
-                            <label><input type="checkbox" id="booking-text-italic"> Kurzíva</label>
+                    <div class="form-row-grid">
+                        <div class="form-group">
+                            <label>Náhľad formátu</label>
+                            <div id="format-preview" class="format-preview">
+                                Vyberte projekt pre náhľad
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Styl textu</label>
+                            <div class="text-style-controls">
+                                <select id="booking-font-size">
+                                    <option value="12px">Malé</option>
+                                    <option value="14px" selected>Normální</option>
+                                    <option value="16px">Větší</option>
+                                </select>
+                                <label><input type="checkbox" id="booking-text-bold"> Tučné</label>
+                                <label><input type="checkbox" id="booking-text-italic"> Kurzíva</label>
+                            </div>
                         </div>
                     </div>
                 </details>
@@ -290,8 +281,9 @@
             <div class="projects-list">
                 <div class="projects-header">
                     <span>Název projektu</span>
-                    <span>Barva</span>
-                    <span>Stav</span>
+                    <span>Barva pozadí</span>
+                    <span>Barva textu</span>
+                    <span>Aktivní</span>
                     <span>Akce</span>
                 </div>
                 <div id="projects-container">
@@ -302,9 +294,25 @@
             <div class="add-project-section">
                 <h3>Přidat nový projekt</h3>
                 <form id="add-project-form">
-                    <div class="form-row">
+                    <div class="form-row project-form-row">
                         <input type="text" id="new-project-name" placeholder="Název projektu" required>
-                        <input type="color" id="new-project-color" value="#4a90e2" required>
+                        <input type="color" id="new-project-color" value="#4a90e2" required title="Barva pozadí">
+                        <div class="text-color-options">
+                            <label>
+                                <input type="radio" name="new-project-text-color" value="#ffffff" checked>
+                                <span class="text-color-preview" style="background: #ffffff; border-color: #000;"></span>
+                                Bílá
+                            </label>
+                            <label>
+                                <input type="radio" name="new-project-text-color" value="#000000">
+                                <span class="text-color-preview" style="background: #000000;"></span>
+                                Černá
+                            </label>
+                        </div>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="new-project-active" checked>
+                            Aktivní
+                        </label>
                         <button type="submit" class="btn btn-primary">Přidat</button>
                     </div>
                 </form>

@@ -1,58 +1,33 @@
 {
     "projects": [
         {
-            "name": "VW2025",
-            "color": "#1f77b4",
-            "active": true
-        },
-        {
-            "name": "BMW2025",
-            "color": "#ff7f0e",
-            "active": true
-        },
-        {
-            "name": "AUDI2025",
-            "color": "#2ca02c",
-            "active": true
-        },
-        {
-            "name": "ŠKODA2025",
-            "color": "#d62728",
-            "active": true
-        },
-        {
-            "name": "SEAT2025",
-            "color": "#9467bd",
-            "active": true
-        },
-        {
-            "name": "CUPRA2025",
-            "color": "#8c564b",
-            "active": true
-        },
-        {
-            "name": "FORD2025",
-            "color": "#e377c2",
-            "active": true
-        },
-        {
-            "name": "RENAULT2025",
-            "color": "#7f7f7f",
-            "active": true
-        },
-        {
-            "name": "PEUGEOT2025",
-            "color": "#bcbd22",
-            "active": true
-        },
-        {
-            "name": "CITROEN2025",
-            "color": "#17becf",
-            "active": true
-        },
-        {
             "name": "BL5",
-            "color": "#f55656",
+            "color": "#fe2a2a",
+            "textColor": "#000000",
+            "active": true
+        },
+        {
+            "name": "BK6",
+            "color": "#fff70f",
+            "textColor": "#000000",
+            "active": true
+        },
+        {
+            "name": "Alpina",
+            "color": "#ffc524",
+            "textColor": "#000000",
+            "active": true
+        },
+        {
+            "name": "LNV",
+            "color": "#3e7efe",
+            "textColor": "#ffffff",
+            "active": true
+        },
+        {
+            "name": "STV",
+            "color": "#e052b3",
+            "textColor": "#ffffff",
             "active": true
         }
     ]

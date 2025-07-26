@@ -1,76 +1,87 @@
 {
     "bookings": [
         {
-            "description": "EU-SVA-123456-25 Calfrest FREEPLAY",
-            "end_date": "2025-07-28",
-            "equipment_id": "Meas. place Big linak",
-            "id": 112,
+            "description": "EU-SVA-123456-25 Alpina - calfrest freeplay",
             "start_date": "2025-07-27",
-            "lane": 0
-        },
-        {
-            "description": "EU-SVA-987654-25 STV",
-            "end_date": "2025-07-26",
-            "equipment_id": "Meas. place Big linak",
-            "id": 113,
-            "lane": 0,
-            "start_date": "2025-07-23"
-        },
-        {
-            "description": "EU-SVA-785678-25 dggdfsgsdfgsdf",
-            "end_date": "2025-07-27",
-            "equipment_id": "Meas. place Big linak",
-            "id": 114,
-            "lane": 1,
-            "start_date": "2025-07-24"
-        },
-        {
-            "description": "EU-SVA-785785-25 xfhxfhxhghsdfh",
-            "end_date": "2025-07-26",
-            "equipment_id": "Meas. place Big linak",
-            "id": 115,
-            "lane": 2,
-            "start_date": "2025-07-24"
-        },
-        {
-            "description": "EU-SVA-454545-25 456546456456",
-            "end_date": "2025-07-30",
-            "equipment_id": "Meas. place Big linak",
-            "id": 116,
-            "lane": 3,
-            "start_date": "2025-07-26"
-        },
-        {
-            "description": "EU-SVA-786767-25 746786786",
-            "end_date": "2025-07-29",
-            "equipment_id": "Meas. place Big linak",
-            "id": 117,
-            "lane": 4,
-            "start_date": "2025-07-25"
-        },
-        {
-            "description": "EU-SVA-654321-25 BL5 SLV",
-            "start_date": "2025-07-29",
-            "end_date": "2025-08-15",
-            "project_name": "BL5 SLV",
-            "project_color": "#f55656",
+            "end_date": "2025-07-28",
+            "project_name": "Alpina",
+            "project_color": "#ffc524",
+            "note": "calfrest freeplay",
             "text_style": {
                 "color": "#000000",
                 "fontSize": "14px",
                 "bold": false,
                 "italic": false
             },
+            "id": 112,
+            "equipment_id": "Meas. place Big linak"
+        },
+        {
+            "description": "EU-SVA-987654-25 STV - freeplay",
+            "end_date": "2025-07-26",
+            "equipment_id": "Meas. place Big linak",
+            "id": 113,
+            "lane": 0,
+            "note": "freeplay",
+            "project_color": "#e052b3",
+            "project_name": "STV",
+            "start_date": "2025-07-23",
+            "text_style": {
+                "bold": false,
+                "color": "#ffffff",
+                "fontSize": "14px",
+                "italic": false
+            }
+        },
+        {
+            "description": "EU-SVA-785678-25 LNV - performance",
+            "end_date": "2025-07-27",
+            "equipment_id": "LNV Tester",
+            "id": 114,
+            "note": "performance",
+            "project_color": "#3e7efe",
+            "project_name": "LNV",
+            "start_date": "2025-07-24",
+            "text_style": {
+                "bold": false,
+                "color": "#ffffff",
+                "fontSize": "14px",
+                "italic": false
+            }
+        },
+        {
+            "description": "EU-SVA-654321-25 BL5 - SLV hard DT",
+            "start_date": "2025-07-29",
+            "end_date": "2025-08-15",
+            "project_name": "BL5",
+            "project_color": "#fe2a2a",
+            "note": "SLV sliding DT",
+            "text_style": {
+                "color": "#000000",
+                "fontSize": "14px",
+                "bold": true,
+                "italic": false
+            },
             "id": 118,
-            "equipment_id": "TisNg Electric 2 - Strana 1"
+            "equipment_id": "TisNg Electric 1 - Strana 2"
         },
         {
             "description": "EU-SVA-111111-25 BL5 SHV + SLV hard-DT",
             "end_date": "2025-09-07",
             "equipment_id": "TisNg Electric 3 - Strana 1",
             "id": 119,
+            "note": "SHV + SLV hard DT",
+            "project_color": "#fe2a2a",
+            "project_name": "BL5",
             "start_date": "2025-07-28",
+            "text_style": {
+                "bold": true,
+                "color": "#000000",
+                "fontSize": "14px",
+                "italic": false
+            },
             "lane": 0
         }
     ],
-    "next_booking_id": 120
+    "next_booking_id": 121
 }
