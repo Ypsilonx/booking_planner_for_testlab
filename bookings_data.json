@@ -81,7 +81,73 @@
                 "italic": false
             },
             "lane": 0
+        },
+        {
+            "description": "EU-SVA-654321-25 BL5 - SLV hard DT - SLV sliding DT + kondicionování",
+            "end_date": "2025-08-03",
+            "equipment_id": "Climatic Chamber 3",
+            "id": 121,
+            "note": "SLV sliding DT + kondicionování",
+            "project_color": "#fe2a2a",
+            "project_name": "BL5",
+            "start_date": "2025-08-02",
+            "text_style": {
+                "bold": true,
+                "color": "#000000",
+                "fontSize": "14px",
+                "italic": false
+            },
+            "lane": 0
+        },
+        {
+            "description": "EU-SVA-654321-25 BL5 - SLV hard DT - SLV sliding DT + FCE, Freeplay before DT",
+            "end_date": "2025-07-28",
+            "equipment_id": "Meas. place Big linak",
+            "id": 122,
+            "note": "SLV sliding DT + FCE, Freeplay before DT",
+            "project_color": "#fe2a2a",
+            "project_name": "BL5",
+            "start_date": "2025-07-28",
+            "text_style": {
+                "bold": true,
+                "color": "#000000",
+                "fontSize": "14px",
+                "italic": false
+            },
+            "lane": 1
+        },
+        {
+            "description": "EU-SVA-875023-25 BK6 - LBV - validace",
+            "start_date": "2025-07-28",
+            "end_date": "2025-08-10",
+            "project_name": "BK6",
+            "project_color": "#fff70f",
+            "note": "LBV - validace",
+            "text_style": {
+                "color": "#000000",
+                "fontSize": "14px",
+                "bold": true,
+                "italic": false
+            },
+            "equipment_id": "TisNg Electric 2 - Strana 2",
+            "id": 123
+        },
+        {
+            "description": "EU-SVA-875023-25 BK6 - LBV - validace + test v teplotách",
+            "start_date": "2025-08-05",
+            "end_date": "2025-08-10",
+            "project_name": "BK6",
+            "project_color": "#fff70f",
+            "note": "LBV - validace + test v teplotách",
+            "text_style": {
+                "bold": true,
+                "color": "#000000",
+                "fontSize": "14px",
+                "italic": false
+            },
+            "equipment_id": "Climatic Chamber 2",
+            "id": 124
         }
     ],
-    "next_booking_id": 121
+    "next_booking_id": 125
 }

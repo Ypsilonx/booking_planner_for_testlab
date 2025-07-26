@@ -166,8 +166,91 @@
 
                 <div class="modal-buttons">
                     <button type="button" id="delete-button" class="btn btn-danger" style="margin-right: auto;">Smazat</button>
+                    <button type="button" id="copy-button" class="btn btn-secondary" style="display: none;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/>
+                            <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/>
+                        </svg>
+                        Kopírovat
+                    </button>
                     <button type="button" id="cancel-button" class="btn btn-secondary">Zrušit</button>
                     <button type="submit" class="btn btn-primary">Uložit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal pro kopírování testu -->
+    <div id="copy-booking-modal" class="modal-overlay">
+        <div class="modal-content booking-modal-content">
+            <h2>Kopírovat test na jiné zařízení</h2>
+            <form id="copy-booking-form">
+                <input type="hidden" id="copy-original-id">
+                
+                <!-- Informace o původním testu -->
+                <div class="form-section">
+                    <h3>Původní test</h3>
+                    <div class="form-row-grid">
+                        <div class="form-group">
+                            <label>Číslo testu</label>
+                            <div id="copy-original-number" class="readonly-field"></div>
+                        </div>
+                        <div class="form-group">
+                            <label>Projekt</label>
+                            <div id="copy-original-project" class="readonly-field"></div>
+                        </div>
+                    </div>
+                    <div class="form-row-grid">
+                        <div class="form-group">
+                            <label>Původní zařízení</label>
+                            <div id="copy-original-equipment" class="readonly-field"></div>
+                        </div>
+                        <div class="form-group">
+                            <label>Poznámka</label>
+                            <div id="copy-original-note" class="readonly-field"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Nastavení kopie -->
+                <div class="form-section">
+                    <h3>Nastavení kopie</h3>
+                    <div class="form-row-grid">
+                        <div class="form-group">
+                            <label for="copy-new-equipment">Cílové zařízení</label>
+                            <select id="copy-new-equipment" required>
+                                <option value="">Vyberte zařízení pro kopii</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row-grid">
+                        <div class="form-group">
+                            <label for="copy-start-date">Datum od</label>
+                            <input type="date" id="copy-start-date" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="copy-end-date">Datum do</label>
+                            <input type="date" id="copy-end-date" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="copy-note-suffix">Doplněk poznámky</label>
+                        <input type="text" id="copy-note-suffix" placeholder="např. 'klimakomora', 'předkondicionování' (volitelné)">
+                        <small style="color: #888;">Pokud vyplníte, přidá se k původní poznámce oddělené ' + '</small>
+                    </div>
+                </div>
+
+                <div class="modal-buttons">
+                    <button type="button" id="cancel-copy-button" class="btn btn-secondary">Zrušit</button>
+                    <button type="submit" class="btn btn-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/>
+                            <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/>
+                        </svg>
+                        Vytvořit kopii
+                    </button>
                 </div>
             </form>
         </div>

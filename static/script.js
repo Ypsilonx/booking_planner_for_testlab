@@ -320,14 +320,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function fetchData() {
         try {
+            console.log('Načítám data z API...');
             const response = await fetch('/api/data');
             if (!response.ok) throw new Error(`Chyba při načítání dat: ${response.statusText}`);
             const data = await response.json();
             
+            console.log('Data načtena:', data);
             allEquipmentData = data.equipment || [];
             allBookings = data.bookings || [];
             allProjects = data.projects || [];
             allEquipmentRows = [];
+            
+            console.log('Počet zařízení:', allEquipmentData.length, 'rezervací:', allBookings.length, 'projektů:', allProjects.length);
 
             // Načti custom nastavení
             loadCustomSettings();
@@ -375,6 +379,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
                 }
             });
+            
+            console.log('Celkem equipmentRows:', allEquipmentRows.length);
         } catch (error) { console.error("Nepodařilo se načíst data:", error); alert("Chyba při komunikaci se serverem."); }
     }
 
@@ -452,6 +458,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function performRender() {
+        console.log('Začínám renderování...');
+        console.log('allEquipmentRows.length:', allEquipmentRows.length);
+        console.log('allBookings.length:', allBookings.length);
+        
         const currentHash = getBookingLayoutHash(allBookings);
         let bookingLayout;
         
@@ -711,6 +721,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // --- Logika pro editaci existující rezervace ---
             document.getElementById('modal-title').textContent = 'Upravit rezervaci';
             document.getElementById('delete-button').style.display = 'block';
+            document.getElementById('copy-button').style.display = 'block';
             document.getElementById('booking-id').value = booking.id;
 
             // Nastavení projektu - použij booking.project_name pokud existuje
@@ -790,6 +801,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Nová rezervace
             document.getElementById('modal-title').textContent = 'Nová rezervace';
             document.getElementById('delete-button').style.display = 'none';
+            document.getElementById('copy-button').style.display = 'none';
             document.getElementById('booking-id').value = '';
             
             const today = new Date().toISOString().split('T')[0];
@@ -1015,6 +1027,140 @@ document.addEventListener('DOMContentLoaded', function() {
             render();
             hideModal();
         }
+    });
+    
+    // Funkce pro kopírování testů
+    function showCopyModal(booking) {
+        const copyModal = document.getElementById('copy-booking-modal');
+        const copyForm = document.getElementById('copy-booking-form');
+        
+        // Nastav původní data
+        document.getElementById('copy-original-id').value = booking.id;
+        
+        // Rozparsonuj číslo testu z description
+        const descRegex = /EU-SVA-(\d{6})-(\d{2})/;
+        const match = booking.description.match(descRegex);
+        const testNumber = match ? `EU-SVA-${match[1]}-${match[2]}` : booking.description;
+        
+        document.getElementById('copy-original-number').textContent = testNumber;
+        document.getElementById('copy-original-project').textContent = booking.project_name || 'Neuvedeno';
+        document.getElementById('copy-original-equipment').textContent = booking.equipment_id;
+        document.getElementById('copy-original-note').textContent = booking.note || '';
+        
+        // Naplň dropdown s dostupnými zařízeními (vyloučíme současné)
+        const equipSelect = document.getElementById('copy-new-equipment');
+        equipSelect.innerHTML = '<option value="">Vyberte zařízení pro kopii</option>' + 
+            allEquipmentRows
+                .filter(row => row.id !== booking.equipment_id)
+                .map(row => `<option value="${row.id}">${row.name}</option>`)
+                .join('');
+        
+        // Nastav defaultní data (stejná jako původní)
+        document.getElementById('copy-start-date').value = booking.start_date;
+        document.getElementById('copy-end-date').value = booking.end_date;
+        document.getElementById('copy-note-suffix').value = '';
+        
+        copyModal.classList.add('visible');
+    }
+    
+    function hideCopyModal() {
+        document.getElementById('copy-booking-modal').classList.remove('visible');
+    }
+    
+    async function handleCopyBooking() {
+        const originalId = parseInt(document.getElementById('copy-original-id').value, 10);
+        const originalBooking = allBookings.find(b => b.id === originalId);
+        
+        if (!originalBooking) {
+            alert('Chyba: Původní rezervace nebyla nalezena.');
+            return;
+        }
+        
+        const newEquipmentId = document.getElementById('copy-new-equipment').value;
+        const newStartDate = document.getElementById('copy-start-date').value;
+        const newEndDate = document.getElementById('copy-end-date').value;
+        const noteSuffix = document.getElementById('copy-note-suffix').value.trim();
+        
+        if (!newEquipmentId) {
+            alert('Prosím vyberte cílové zařízení.');
+            return;
+        }
+        
+        if (!newStartDate || !newEndDate) {
+            alert('Prosím zadejte platná data.');
+            return;
+        }
+        
+        if (new Date(newEndDate) < new Date(newStartDate)) {
+            alert('Datum konce nemůže být dříve než datum začátku.');
+            return;
+        }
+        
+        // Sestavení nové poznámky
+        let newNote = originalBooking.note || '';
+        if (noteSuffix) {
+            newNote = newNote ? `${newNote} + ${noteSuffix}` : noteSuffix;
+        }
+        
+        // Sestavení nového popisu
+        let newDescription = originalBooking.description;
+        if (noteSuffix && originalBooking.note) {
+            // Nahradíme původní poznámku novou
+            const baseDesc = originalBooking.description.replace(` - ${originalBooking.note}`, '');
+            newDescription = `${baseDesc} - ${newNote}`;
+        } else if (noteSuffix && !originalBooking.note) {
+            // Přidáme poznámku pokud původně nebyla
+            newDescription = `${originalBooking.description} - ${noteSuffix}`;
+        }
+        
+        // Vytvoření kopie rezervace
+        const copiedBooking = {
+            description: newDescription,
+            start_date: newStartDate,
+            end_date: newEndDate,
+            project_name: originalBooking.project_name,
+            project_color: originalBooking.project_color,
+            note: newNote,
+            text_style: { ...originalBooking.text_style },
+            equipment_id: newEquipmentId
+        };
+        
+        try {
+            const result = await createBookingOnServer(copiedBooking);
+            
+            if (result === null) {
+                alert('Chyba: Kopie se překrývá s jinou rezervací, byla překročena kapacita, nebo nastala jiná chyba. Zkontrolujte prosím kalendář a zkuste jiné datum nebo zařízení.');
+            } else {
+                await fetchData();
+                render();
+                hideCopyModal();
+                hideModal(); // Zavři i původní modal
+                alert('Test byl úspěšně zkopírován!');
+            }
+        } catch (error) {
+            console.error('Chyba při kopírování testu:', error);
+            alert('Nastala chyba při kopírování testu. Zkuste to prosím znovu.');
+        }
+    }
+    
+    // Event listenery pro kopírování testů
+    document.getElementById('copy-button').addEventListener('click', () => {
+        const bookingId = parseInt(document.getElementById('booking-id').value, 10);
+        const booking = allBookings.find(b => b.id === bookingId);
+        
+        if (!booking) {
+            alert('Chyba: Rezervace nebyla nalezena.');
+            return;
+        }
+        
+        showCopyModal(booking);
+    });
+    
+    document.getElementById('cancel-copy-button').addEventListener('click', hideCopyModal);
+    
+    document.getElementById('copy-booking-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await handleCopyBooking();
     });
     
     interact('.booking-bar')
@@ -1408,6 +1554,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     async function init() {
+        console.log('Inicializuji aplikaci...');
+        
         // Synchronizace scrollování: pouze grid -> sidebar
         // Sidebar NEMÁ vlastní scroll, ale má scrollTop pro synchronizaci
         gridWrapper.addEventListener('scroll', () => { 
@@ -1528,7 +1676,7 @@ document.addEventListener('DOMContentLoaded', function() {
         await fetchData();
         const currentYear = new Date().getFullYear();
         yearDates = getDatesForYear(currentYear);
-        render();
+        render(true); // Force okamžité vykreslení při inicializaci
         
         // Automaticky skroluj na dnešní datum při načtení
         setTimeout(scrollToToday, 100);
