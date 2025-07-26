@@ -12,33 +12,9 @@ document.addEventListener('DOMContentLoaded', function() {
     let yearDates = [];
     let rowHeights = [];
     
-    // Systém pro uchování vlastních kapacit a názvů
-    let customCapacities = new Map(); // Map<equipment_id, custom_capacity>
-    let customEquipmentNames = new Map(); // Map<equipment_id, custom_name>
-
-    // Funkce pro ukládání a načítání custom nastavení
-    function saveCustomSettings() {
-        const settings = {
-            capacities: Array.from(customCapacities.entries()),
-            names: Array.from(customEquipmentNames.entries())
-        };
-        localStorage.setItem('equipment_custom_settings', JSON.stringify(settings));
-    }
-
-    function loadCustomSettings() {
-        try {
-            const saved = localStorage.getItem('equipment_custom_settings');
-            if (saved) {
-                const settings = JSON.parse(saved);
-                customCapacities = new Map(settings.capacities || []);
-                customEquipmentNames = new Map(settings.names || []);
-            }
-        } catch (error) {
-            console.error('Chyba při načítání custom nastavení:', error);
-            customCapacities = new Map();
-            customEquipmentNames = new Map();
-        }
-    } 
+    // Nová struktura pro uchování dynamických kapacit a stavů
+    let equipmentCapacities = new Map(); // Map<equipment_id, current_capacity>
+    let wholeEquipmentReservations = new Set(); // Set pro sledování rezervací celého zařízení 
 
     const DAY_WIDTH = 100;
     const HEADER_HEIGHT = 60;
@@ -74,142 +50,96 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function hideModal() { modal.classList.remove('visible'); }
-    
-    function showEquipmentModal(equipRow) {
-        const equipmentModal = document.getElementById('equipment-modal');
-        const equipmentForm = document.getElementById('equipment-form');
+
+    function updateEquipmentCapacity(equipmentId, newCapacity) {
+        equipmentCapacities.set(equipmentId, Math.max(0, newCapacity));
+        renderEquipmentSidebar(); // Re-render sidebar to show updated capacity
+    }
+
+    function toggleWholeEquipmentReservation(baseEquipmentName, enable) {
+        const equipmentRows = allEquipmentRows.filter(r => r.base_name === baseEquipmentName);
         
-        document.getElementById('equipment-modal-title').textContent = 'Upravit zařízení';
-        document.getElementById('equipment-id').value = equipRow.id;
-        document.getElementById('equipment-name').value = equipRow.name;
-        document.getElementById('equipment-category').value = equipRow.category || '';
-        document.getElementById('equipment-capacity').value = equipRow.max_tests;
-        
-        // Zobraz sides section jen pro editaci existujícího
-        document.getElementById('sides-section').style.display = 'block';
-        document.getElementById('delete-equipment-button').style.display = 'block';
-        
-        // Naplň seznam všech stran/prostorů pro dané základní zařízení
-        const sidesContainer = document.getElementById('sides-management');
-        sidesContainer.innerHTML = '';
-        
-        const relatedEquipment = allEquipmentRows.filter(r => r.base_name === equipRow.base_name);
-        relatedEquipment.forEach(related => {
-            const sideItem = document.createElement('div');
-            sideItem.className = 'side-item';
-            
-            const nameInput = document.createElement('input');
-            nameInput.type = 'text';
-            nameInput.value = related.name;
-            nameInput.dataset.equipId = related.id;
-            
-            const capacityInput = document.createElement('input');
-            capacityInput.type = 'number';
-            capacityInput.min = '0';
-            capacityInput.max = '10';
-            capacityInput.value = related.max_tests;
-            capacityInput.style.width = '80px';
-            
-            const deleteBtn = document.createElement('button');
-            deleteBtn.type = 'button';
-            deleteBtn.className = 'btn btn-danger';
-            deleteBtn.textContent = 'Smazat';
-            deleteBtn.onclick = () => {
-                if (confirm(`Opravdu chcete smazat "${related.name}"?`)) {
-                    // Zde by byla logika pro smazání strany
-                    sideItem.remove();
+        if (enable) {
+            wholeEquipmentReservations.add(baseEquipmentName);
+            // Nastav kapacitu všech prostorů/stran na 1 pro rezervaci celého zařízení
+            equipmentRows.forEach(row => {
+                equipmentCapacities.set(row.id, 1);
+            });
+        } else {
+            wholeEquipmentReservations.delete(baseEquipmentName);
+            // Obnov původní kapacity
+            equipmentRows.forEach(row => {
+                const originalEquipment = allEquipmentData.find(e => e.name === row.base_name);
+                if (originalEquipment) {
+                    equipmentCapacities.set(row.id, originalEquipment.max_tests);
                 }
-            };
-            
-            sideItem.appendChild(nameInput);
-            sideItem.appendChild(capacityInput);
-            sideItem.appendChild(deleteBtn);
-            sidesContainer.appendChild(sideItem);
-        });
+            });
+        }
+        renderEquipmentSidebar();
+    }
+
+    function createCapacityControls(equipRow) {
+        const controls = document.createElement('div');
+        controls.className = 'capacity-controls';
         
-        equipmentModal.classList.add('visible');
-    }
-    
-    function showNewEquipmentModal() {
-        const newEquipmentModal = document.getElementById('new-equipment-modal');
-        document.getElementById('new-equipment-form').reset();
-        newEquipmentModal.classList.add('visible');
-    }
-    
-    function hideEquipmentModal() {
-        document.getElementById('equipment-modal').classList.remove('visible');
-    }
-    
-    function hideNewEquipmentModal() {
-        document.getElementById('new-equipment-modal').classList.remove('visible');
-    }
-    
-    function createNewEquipment() {
-        const name = document.getElementById('new-equipment-name').value;
-        const category = document.getElementById('new-equipment-category').value;
-        const capacity = parseInt(document.getElementById('new-equipment-capacity').value);
-        const sides = parseInt(document.getElementById('new-equipment-sides').value);
+        const currentCapacity = equipmentCapacities.get(equipRow.id) || equipRow.max_tests;
         
-        // Vytvoř nové zařízení v allEquipmentData
-        const newEquipment = {
-            name: name,
-            status: 'active',
-            sides: sides,
-            max_tests: capacity,
-            category: category
+        // Minus button
+        const minusBtn = document.createElement('button');
+        minusBtn.className = 'capacity-btn';
+        minusBtn.textContent = '-';
+        minusBtn.onclick = (e) => {
+            e.stopPropagation();
+            updateEquipmentCapacity(equipRow.id, currentCapacity - 1);
+        };
+        minusBtn.disabled = currentCapacity <= 0;
+        
+        // Capacity input
+        const capacityInput = document.createElement('input');
+        capacityInput.className = 'capacity-input';
+        capacityInput.type = 'number';
+        capacityInput.min = '0';
+        capacityInput.max = '10';
+        capacityInput.value = currentCapacity;
+        capacityInput.onclick = (e) => e.stopPropagation();
+        capacityInput.onchange = (e) => {
+            const newValue = parseInt(e.target.value) || 0;
+            updateEquipmentCapacity(equipRow.id, newValue);
         };
         
-        allEquipmentData.push(newEquipment);
+        // Plus button
+        const plusBtn = document.createElement('button');
+        plusBtn.className = 'capacity-btn';
+        plusBtn.textContent = '+';
+        plusBtn.onclick = (e) => {
+            e.stopPropagation();
+            updateEquipmentCapacity(equipRow.id, currentCapacity + 1);
+        };
+        plusBtn.disabled = currentCapacity >= 10;
         
-        // Přidej do custom nastavení
-        if (sides > 1) {
-            const spaceLabel = name.toLowerCase().includes('climatic') ? 'Prostor' : 'Strana';
-            for (let i = 1; i <= sides; i++) {
-                const equipId = `${name} - ${spaceLabel} ${i}`;
-                customCapacities.set(equipId, capacity);
-                customEquipmentNames.set(equipId, equipId);
-            }
-        } else {
-            customCapacities.set(name, capacity);
-            customEquipmentNames.set(name, name);
+        controls.appendChild(minusBtn);
+        controls.appendChild(capacityInput);
+        controls.appendChild(plusBtn);
+        
+        return controls;
+    }
+
+    function createWholeEquipmentToggle(baseEquipmentName) {
+        const toggle = document.createElement('button');
+        toggle.className = 'whole-equipment-toggle';
+        toggle.textContent = 'Celé';
+        
+        const isActive = wholeEquipmentReservations.has(baseEquipmentName);
+        if (isActive) {
+            toggle.classList.add('active');
         }
         
-        saveCustomSettings();
+        toggle.onclick = (e) => {
+            e.stopPropagation();
+            toggleWholeEquipmentReservation(baseEquipmentName, !isActive);
+        };
         
-        // Znovu načti a vykresli
-        fetchData().then(() => render());
-        hideNewEquipmentModal();
-    }
-    
-    function saveEquipmentChanges() {
-        const equipId = document.getElementById('equipment-id').value;
-        const newName = document.getElementById('equipment-name').value;
-        const newCategory = document.getElementById('equipment-category').value;
-        const newCapacity = parseInt(document.getElementById('equipment-capacity').value);
-        
-        // Ulož změny do custom nastavení
-        customEquipmentNames.set(equipId, newName);
-        customCapacities.set(equipId, newCapacity);
-        
-        // TODO: Přidat podporu pro změnu kategorie
-        // Pro nyní pouze lokální změny, bez ukládání kategorií
-        
-        // Ulož všechny změny ze sides-management
-        const sideItems = document.querySelectorAll('.side-item');
-        sideItems.forEach(item => {
-            const nameInput = item.querySelector('input[type="text"]');
-            const capacityInput = item.querySelector('input[type="number"]');
-            const equipId = nameInput.dataset.equipId;
-            
-            customEquipmentNames.set(equipId, nameInput.value);
-            customCapacities.set(equipId, parseInt(capacityInput.value));
-        });
-        
-        saveCustomSettings();
-        
-        // Znovu načti a vykresli
-        fetchData().then(() => render());
-        hideEquipmentModal();
+        return toggle;
     }
 
     async function fetchData() {
@@ -222,67 +152,51 @@ document.addEventListener('DOMContentLoaded', function() {
             allBookings = data.bookings || [];
             allEquipmentRows = [];
 
-            // Načti custom nastavení
-            loadCustomSettings();
-
             allEquipmentData.forEach(parentEquip => {
                 const sideCount = parentEquip.sides || 1;
                 if (parentEquip.name.includes('TisNg Hybrid') && sideCount > 1) {
                     const side1Id = `${parentEquip.name} - Strana 1`;
                     const pneumatikaId = `${parentEquip.name} - PNEUMATIKA`;
+                    allEquipmentRows.push({ id: side1Id, name: side1Id, status: parentEquip.status, max_tests: parentEquip.max_tests, base_name: parentEquip.name });
+                    allEquipmentRows.push({ id: pneumatikaId, name: pneumatikaId, status: parentEquip.status, max_tests: parentEquip.max_tests, base_name: parentEquip.name });
                     
-                    allEquipmentRows.push({ 
-                        id: side1Id, 
-                        name: customEquipmentNames.get(side1Id) || side1Id, 
-                        status: parentEquip.status, 
-                        max_tests: customCapacities.get(side1Id) || parentEquip.max_tests, 
-                        base_name: parentEquip.name 
-                    });
-                    allEquipmentRows.push({ 
-                        id: pneumatikaId, 
-                        name: customEquipmentNames.get(pneumatikaId) || pneumatikaId, 
-                        status: parentEquip.status, 
-                        max_tests: customCapacities.get(pneumatikaId) || parentEquip.max_tests, 
-                        base_name: parentEquip.name 
-                    });
+                    // Inicializace kapacit pro TisNg Hybrid
+                    if (!equipmentCapacities.has(side1Id)) {
+                        equipmentCapacities.set(side1Id, parentEquip.max_tests);
+                    }
+                    if (!equipmentCapacities.has(pneumatikaId)) {
+                        equipmentCapacities.set(pneumatikaId, parentEquip.max_tests);
+                    }
                 } else if (sideCount > 1) {
                     // Rozlišení mezi klimakomorami a ostatními zařízeními
                     const spaceLabel = parentEquip.name.toLowerCase().includes('climatic') ? 'Prostor' : 'Strana';
                     for (let i = 1; i <= sideCount; i++) {
                         const equipId = `${parentEquip.name} - ${spaceLabel} ${i}`;
-                        allEquipmentRows.push({ 
-                            id: equipId, 
-                            name: customEquipmentNames.get(equipId) || equipId, 
-                            status: parentEquip.status, 
-                            max_tests: customCapacities.get(equipId) || parentEquip.max_tests, 
-                            base_name: parentEquip.name 
-                        });
+                        allEquipmentRows.push({ id: equipId, name: equipId, status: parentEquip.status, max_tests: parentEquip.max_tests, base_name: parentEquip.name });
+                        
+                        // Inicializace kapacity
+                        if (!equipmentCapacities.has(equipId)) {
+                            equipmentCapacities.set(equipId, parentEquip.max_tests);
+                        }
                     }
                 } else {
-                    allEquipmentRows.push({ 
-                        id: parentEquip.name, 
-                        name: customEquipmentNames.get(parentEquip.name) || parentEquip.name, 
-                        status: parentEquip.status, 
-                        max_tests: customCapacities.get(parentEquip.name) || parentEquip.max_tests, 
-                        base_name: parentEquip.name 
-                    });
+                    allEquipmentRows.push({ id: parentEquip.name, name: parentEquip.name, status: parentEquip.status, max_tests: parentEquip.max_tests, base_name: parentEquip.name });
+                    
+                    // Inicializace kapacity pro jednoprostorová zařízení
+                    if (!equipmentCapacities.has(parentEquip.name)) {
+                        equipmentCapacities.set(parentEquip.name, parentEquip.max_tests);
+                    }
                 }
             });
         } catch (error) { console.error("Nepodařilo se načíst data:", error); alert("Chyba při komunikaci se serverem."); }
     }
 
-        async function updateBookingOnServer(bookingData) { 
+    async function updateBookingOnServer(bookingData) { 
         try {
-            // Přidej custom kapacity do požadavku
-            const dataWithCapacities = {
-                ...bookingData,
-                custom_capacities: Object.fromEntries(customCapacities)
-            };
-            
             const response = await fetch(`/api/bookings/${bookingData.id}`, { 
                 method: 'PUT', 
                 headers: { 'Content-Type': 'application/json' }, 
-                body: JSON.stringify(dataWithCapacities), 
+                body: JSON.stringify(bookingData), 
             }); 
             if (!response.ok) { 
                 const errorData = await response.json();
@@ -296,18 +210,13 @@ document.addEventListener('DOMContentLoaded', function() {
             return false;
         }
     }
-        async function createBookingOnServer(bookingData) { 
+    
+    async function createBookingOnServer(bookingData) { 
         try {
-            // Přidej custom kapacity do požadavku
-            const dataWithCapacities = {
-                ...bookingData,
-                custom_capacities: Object.fromEntries(customCapacities)
-            };
-            
             const response = await fetch('/api/bookings', { 
                 method: 'POST', 
                 headers: { 'Content-Type': 'application/json' }, 
-                body: JSON.stringify(dataWithCapacities), 
+                body: JSON.stringify(bookingData), 
             }); 
             if (!response.ok) { 
                 const errorData = await response.json();
@@ -320,49 +229,66 @@ document.addEventListener('DOMContentLoaded', function() {
             return null;
         }
     }
-    async function deleteBookingOnServer(bookingId) { const response = await fetch(`/api/bookings/${bookingId}`, { method: 'DELETE' }); if (!response.ok) { alert('Chyba při mazání rezervace.'); return false; } return true; }
+    
+    async function deleteBookingOnServer(bookingId) { 
+        try {
+            const response = await fetch(`/api/bookings/${bookingId}`, { method: 'DELETE' }); 
+            if (!response.ok) { 
+                const errorData = await response.json();
+                alert(`Chyba při mazání: ${errorData.error || 'Neznámá chyba'}`); 
+                return false; 
+            } 
+            return true; 
+        } catch (error) {
+            alert('Chyba síťového připojení při mazání rezervace.');
+            console.error('Delete error:', error);
+            return false;
+        }
+    }
 
-    // Debounce pro render funkci
-    let renderTimeout = null;
-    
-    function render(force = false) {
-        if (renderTimeout && !force) {
-            clearTimeout(renderTimeout);
-        }
-        
-        renderTimeout = setTimeout(() => {
-            performRender();
-            renderTimeout = null;
-        }, force ? 0 : 16); // 60 FPS při rychlém pohybu, okamžitě při force
-    }
-    
-    // Cache pro booking layout
-    let cachedBookingLayout = null;
-    let lastBookingsHash = null;
-    
-    function getBookingLayoutHash(bookings) {
-        return bookings.map(b => `${b.id}-${b.equipment_id}-${b.start_date}-${b.end_date}`).join('|');
-    }
-    
-    function performRender() {
-        const currentHash = getBookingLayoutHash(allBookings);
-        let bookingLayout;
-        
-        if (cachedBookingLayout && lastBookingsHash === currentHash) {
-            bookingLayout = cachedBookingLayout;
-        } else {
-            bookingLayout = calculateBookingLayout(allBookings, allEquipmentRows);
-            cachedBookingLayout = bookingLayout;
-            lastBookingsHash = currentHash;
-        }
+    function render() {
+        const bookingLayout = calculateBookingLayout(allBookings, allEquipmentRows);
         rowHeights = allEquipmentRows.map(equip => {
             const layoutInfo = bookingLayout.get(equip.id);
             const maxLanes = layoutInfo ? layoutInfo.maxLanes : 0;
             return Math.max(BASE_ROW_HEIGHT, maxLanes * LANE_HEIGHT);
         });
 
-        equipmentSidebar.innerHTML = '';
+        // Render sidebar s novým systémem
+        renderEquipmentSidebar();
+        
+        // Render grid
         gridElement.innerHTML = '';
+        gridElement.style.gridTemplateColumns = `repeat(${yearDates.length}, ${DAY_WIDTH}px)`;
+        gridElement.style.gridTemplateRows = `${HEADER_HEIGHT}px ${rowHeights.map(h => `${h}px`).join(' ')}`;
+        
+        const fragment = document.createDocumentFragment();
+        const today = normalizeDate(new Date());
+        yearDates.forEach(date => {
+            const dateHeader = document.createElement('div');
+            dateHeader.className = 'date-header';
+            if (['So', 'Ne'].includes(date.toLocaleDateString('cs-CZ', { weekday: 'short' }))) dateHeader.classList.add('weekend');
+            if (date.getTime() === today.getTime()) dateHeader.classList.add('today');
+            dateHeader.innerHTML = `<span>${date.getUTCDate()}.${date.getUTCMonth() + 1}.</span><span class="day-name">${date.toLocaleDateString('cs-CZ', { weekday: 'short' })}</span>`;
+            fragment.appendChild(dateHeader);
+        });
+        let totalCells = 0;
+        allEquipmentRows.forEach(() => totalCells += yearDates.length);
+        for (let i = 0; i < totalCells; i++) {
+            const cell = document.createElement('div');
+            cell.className = 'grid-cell';
+            const date = yearDates[i % yearDates.length];
+            if (['So', 'Ne'].includes(date.toLocaleDateString('cs-CZ', { weekday: 'short' }))) cell.classList.add('weekend');
+            if (date.getTime() === today.getTime()) cell.classList.add('today');
+            fragment.appendChild(cell);
+        }
+        gridElement.appendChild(fragment);
+        renderBookings();
+    }
+
+    function renderEquipmentSidebar() {
+        equipmentSidebar.innerHTML = '';
+        
         const sidebarHeader = document.createElement('div');
         sidebarHeader.className = 'sidebar-header';
         sidebarHeader.style.height = `${HEADER_HEIGHT}px`;
@@ -372,65 +298,34 @@ document.addEventListener('DOMContentLoaded', function() {
             const item = document.createElement('div');
             item.className = 'equipment-item';
             item.style.height = `${rowHeights[index]}px`;
+            
             const statusDot = document.createElement('div');
             statusDot.className = `status-dot status-${(equipRow.status || 'active').toLowerCase()}`;
-            const nameSpan = document.createElement('span');
-            nameSpan.className = 'equipment-name';
-            nameSpan.textContent = equipRow.name;
-            nameSpan.title = 'Dvojklik pro editaci názvu nebo pokročilé nastavení';
             
-            // Přidej double-click editaci názvu
-            nameSpan.ondblclick = function(e) {
-                e.stopPropagation();
-                showEquipmentModal(equipRow);
-            };
+            const nameContainer = document.createElement('div');
+            nameContainer.className = 'equipment-name';
+            nameContainer.textContent = equipRow.name;
             
             item.appendChild(statusDot);
-            item.appendChild(nameSpan);
-
-            if (equipRow.max_tests) {
-                const maxTestsSpan = document.createElement('span');
-                maxTestsSpan.className = 'max-tests-info';
-                maxTestsSpan.textContent = `${equipRow.max_tests}`;
-                maxTestsSpan.title = 'Klikněte pro úpravu kapacity';
-                
-                // Přidej inline editaci kapacity
-                maxTestsSpan.onclick = function(e) {
-                    e.stopPropagation();
-                    const input = document.createElement('input');
-                    input.className = 'max-tests-input';
-                    input.type = 'number';
-                    input.min = '0';
-                    input.max = '10';
-                    input.value = equipRow.max_tests;
-                    
-                    input.onblur = function() {
-                        const newValue = Math.max(0, Math.min(10, parseInt(input.value) || 0));
-                        equipRow.max_tests = newValue;
-                        // Ulož do custom nastavení
-                        customCapacities.set(equipRow.id, newValue);
-                        saveCustomSettings();
-                        maxTestsSpan.textContent = `${newValue}`;
-                        item.replaceChild(maxTestsSpan, input);
-                    };
-                    
-                    input.onkeydown = function(e) {
-                        if (e.key === 'Enter') input.blur();
-                        if (e.key === 'Escape') {
-                            maxTestsSpan.textContent = `${equipRow.max_tests}`;
-                            item.replaceChild(maxTestsSpan, input);
-                        }
-                    };
-                    
-                    item.replaceChild(input, maxTestsSpan);
-                    input.focus();
-                    input.select();
-                };
-                
-                item.appendChild(maxTestsSpan);
+            item.appendChild(nameContainer);
+            
+            // Přidej controls pro kapacitu
+            const capacityControls = createCapacityControls(equipRow);
+            item.appendChild(capacityControls);
+            
+            // Pro TisNg zařízení s více stranami přidej toggle pro celé zařízení
+            const baseEquipment = allEquipmentData.find(e => e.name === equipRow.base_name);
+            if (baseEquipment && baseEquipment.name.includes('TisNg') && baseEquipment.sides > 1) {
+                // Přidej toggle pouze k první straně každého zařízení
+                if (equipRow.id.includes('Strana 1')) {
+                    const wholeToggle = createWholeEquipmentToggle(equipRow.base_name);
+                    item.appendChild(wholeToggle);
+                }
             }
+
             equipmentSidebar.appendChild(item);
         });
+    }
 
         gridElement.style.gridTemplateColumns = `repeat(${yearDates.length}, ${DAY_WIDTH}px)`;
         gridElement.style.gridTemplateRows = `${HEADER_HEIGHT}px ${rowHeights.map(h => `${h}px`).join(' ')}`;
@@ -490,7 +385,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // --- ZMĚNA ZDE: Nová logika pro zobrazení formuláře ---
+    // --- ZMĚNA ZDE: Vylepšená logika pro zobrazení formuláře ---
     function showModal(booking = null) {
         modalForm.reset();
         const equipSelect = document.getElementById('booking-equip');
@@ -505,6 +400,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const endDateInput = document.getElementById('booking-end');
         const bothSpacesCheckbox = document.getElementById('booking-both-spaces');
         const submitButton = modalForm.querySelector('button[type="submit"]');
+        const deleteButton = document.getElementById('delete-button');
 
         equipSelect.innerHTML = allEquipmentData.map(e => `<option value="${e.name}">${e.name}</option>`).join('');
 
@@ -524,8 +420,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (booking) {
             // --- Logika pro editaci existující rezervace ---
-            document.getElementById('modal-title').textContent = 'Upravit rezervaci';
-            document.getElementById('delete-button').style.display = 'block';
+            document.getElementById('modal-title').textContent = 'Upravit rezervace';
+            deleteButton.style.display = 'block';
             document.getElementById('booking-id').value = booking.id;
 
             // Rozparsujeme popis
@@ -555,7 +451,7 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             // Nová rezervace
             document.getElementById('modal-title').textContent = 'Nová rezervace';
-            document.getElementById('delete-button').style.display = 'none';
+            deleteButton.style.display = 'none';
             document.getElementById('booking-id').value = '';
             
             const today = new Date().toISOString().split('T')[0];
@@ -565,6 +461,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Povolíme všechna pole a tlačítko Uložit
             [euSvaInput, projectInput, equipSelect, bothSpacesCheckbox, startDateInput, endDateInput].forEach(el => el.disabled = false);
             submitButton.style.display = 'inline-flex';
+            submitButton.textContent = 'Vytvořit';
         }
         
         handleEquipChange();
@@ -624,12 +521,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 let space1_id, space2_id;
                 
                 if (selectedEquipData.name.includes('TisNg Hybrid')) {
-                    space1_id = allEquipmentRows.find(r => r.base_name === baseEquipName && r.id.includes('Strana 1'))?.id;
-                    space2_id = allEquipmentRows.find(r => r.base_name === baseEquipName && r.id.includes('PNEUMATIKA'))?.id;
+                    space1_id = allEquipmentRows.find(r => r.base_name === baseEquipName && r.id.includes('Strana 1')).id;
+                    space2_id = allEquipmentRows.find(r => r.base_name === baseEquipName && r.id.includes('PNEUMATIKA')).id;
                 } else {
                     const spaceLabel = selectedEquipData.name.toLowerCase().includes('climatic') ? 'Prostor' : 'Strana';
-                    space1_id = allEquipmentRows.find(r => r.base_name === baseEquipName && r.id.includes(`${spaceLabel} 1`))?.id;
-                    space2_id = allEquipmentRows.find(r => r.base_name === baseEquipName && r.id.includes(`${spaceLabel} 2`))?.id;
+                    space1_id = allEquipmentRows.find(r => r.base_name === baseEquipName && r.id.includes(`${spaceLabel} 1`)).id;
+                    space2_id = allEquipmentRows.find(r => r.base_name === baseEquipName && r.id.includes(`${spaceLabel} 2`)).id;
                 }
                 
                 if (space1_id && space2_id) {
@@ -743,95 +640,74 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     async function handleInteractionEnd(updatedBooking) {
-        // Zobraz loading indikátor
-        const target = document.querySelector(`[data-booking-id="${updatedBooking.id}"]`);
-        if (target) {
-            target.style.opacity = '0.7';
-            target.style.pointerEvents = 'none';
-        }
-        
         const success = await updateBookingOnServer(updatedBooking);
-        if (success) { 
-            // Pouze aktualizuj lokální data místo full fetch
-            const existingIndex = allBookings.findIndex(b => b.id === updatedBooking.id);
-            if (existingIndex !== -1) {
-                allBookings[existingIndex] = { ...updatedBooking };
-            }
-        }
-        
-        // Obnov UI rychleji bez plného re-fetchu
-        render(true); // force render
+        if (success) { await fetchData(); }
+        render();
     }
 
     async function handleDragEnd(event) {
         const target = event.target;
         const bookingId = parseInt(target.dataset.bookingId, 10);
         const originalBooking = allBookings.find(b => b.id === bookingId);
-        if (!originalBooking) { render(true); return; }
+        if (!originalBooking) { render(); return; }
 
-        // Optimalizace: použij requestAnimationFrame pro plynulejší animace
-        requestAnimationFrame(() => {
-            const offsetX = parseFloat(target.getAttribute('data-offset-x')) || 0;
-            const gridRect = gridWrapper.getBoundingClientRect();
-            const elementX = event.pageX - gridRect.left + gridWrapper.scrollLeft - offsetX;
-            const y = event.pageY - gridRect.top + gridWrapper.scrollTop;
+        const offsetX = parseFloat(target.getAttribute('data-offset-x')) || 0;
+        const gridRect = gridWrapper.getBoundingClientRect();
+        const elementX = event.pageX - gridRect.left + gridWrapper.scrollLeft - offsetX;
+        const y = event.pageY - gridRect.top + gridWrapper.scrollTop;
 
-            const dayIndex = Math.max(0, Math.round(elementX / DAY_WIDTH));
-            if (dayIndex >= yearDates.length) { render(true); return; }
+        const dayIndex = Math.max(0, Math.round(elementX / DAY_WIDTH));
+        if (dayIndex >= yearDates.length) { render(); return; }
 
-            let equipIndex = -1;
-            let cumulativeHeight = HEADER_HEIGHT;
-            for(let i = 0; i < rowHeights.length; i++) {
-                if (y >= cumulativeHeight && y < cumulativeHeight + rowHeights[i]) {
-                    equipIndex = i;
-                    break;
-                }
-                cumulativeHeight += rowHeights[i];
+        let equipIndex = -1;
+        let cumulativeHeight = HEADER_HEIGHT;
+        for(let i = 0; i < rowHeights.length; i++) {
+            if (y >= cumulativeHeight && y < cumulativeHeight + rowHeights[i]) {
+                equipIndex = i;
+                break;
             }
-            if (equipIndex === -1) { render(true); return; }
-            
-            const newEquipmentId = allEquipmentRows[equipIndex].id;
-            const newStartDate = yearDates[dayIndex];
-            const duration = diffInDays(normalizeDate(new Date(originalBooking.start_date)), normalizeDate(new Date(originalBooking.end_date)));
-            const newEndDate = addDays(newStartDate, duration);
-            const updatedBooking = { ...originalBooking, equipment_id: newEquipmentId, start_date: newStartDate.toISOString().split('T')[0], end_date: newEndDate.toISOString().split('T')[0] };
-            
-            handleInteractionEnd(updatedBooking);
-        });
+            cumulativeHeight += rowHeights[i];
+        }
+        if (equipIndex === -1) { render(); return; }
+        
+        const newEquipmentId = allEquipmentRows[equipIndex].id;
+        const newStartDate = yearDates[dayIndex];
+        const duration = diffInDays(normalizeDate(new Date(originalBooking.start_date)), normalizeDate(new Date(originalBooking.end_date)));
+        const newEndDate = addDays(newStartDate, duration);
+        const updatedBooking = { ...originalBooking, equipment_id: newEquipmentId, start_date: newStartDate.toISOString().split('T')[0], end_date: newEndDate.toISOString().split('T')[0] };
+        
+        await handleInteractionEnd(updatedBooking);
     }
     
     async function handleResizeEnd(event) {
-        // Optimalizace: použij requestAnimationFrame
-        requestAnimationFrame(async () => {
-            const target = event.target;
-            const bookingId = parseInt(target.dataset.bookingId, 10);
-            const originalBooking = allBookings.find(b => b.id === bookingId);
-            if (!originalBooking) return;
+        const target = event.target;
+        const bookingId = parseInt(target.dataset.bookingId, 10);
+        const originalBooking = allBookings.find(b => b.id === bookingId);
+        if (!originalBooking) return;
 
-            let updatedBooking;
+        let updatedBooking;
 
-            if (event.edges.left) {
-                const x_translation = parseFloat(target.getAttribute('data-x')) || 0;
-                const daysShifted = Math.round(x_translation / DAY_WIDTH);
-                const originalStartDate = normalizeDate(new Date(originalBooking.start_date));
-                const newStartDate = addDays(originalStartDate, daysShifted);
-                const originalEndDate = normalizeDate(new Date(originalBooking.end_date));
-                if (newStartDate > originalEndDate) { render(true); return; }
-                updatedBooking = { ...originalBooking, start_date: newStartDate.toISOString().split('T')[0] };
-            } else {
-                const newWidth = event.rect.width;
-                const durationDays = Math.max(1, Math.round(newWidth / DAY_WIDTH));
-                const originalStartDate = normalizeDate(new Date(originalBooking.start_date));
-                const newEndDate = addDays(originalStartDate, durationDays - 1);
-                updatedBooking = { ...originalBooking, end_date: newEndDate.toISOString().split('T')[0] };
-            }
+        if (event.edges.left) {
+            const x_translation = parseFloat(target.getAttribute('data-x')) || 0;
+            const daysShifted = Math.round(x_translation / DAY_WIDTH);
+            const originalStartDate = normalizeDate(new Date(originalBooking.start_date));
+            const newStartDate = addDays(originalStartDate, daysShifted);
+            const originalEndDate = normalizeDate(new Date(originalBooking.end_date));
+            if (newStartDate > originalEndDate) { render(); return; }
+            updatedBooking = { ...originalBooking, start_date: newStartDate.toISOString().split('T')[0] };
+        } else {
+            const newWidth = event.rect.width;
+            const durationDays = Math.max(1, Math.round(newWidth / DAY_WIDTH));
+            const originalStartDate = normalizeDate(new Date(originalBooking.start_date));
+            const newEndDate = addDays(originalStartDate, durationDays - 1);
+            updatedBooking = { ...originalBooking, end_date: newEndDate.toISOString().split('T')[0] };
+        }
 
-            target.removeAttribute('data-x');
-            target.removeAttribute('data-y');
-            target.removeAttribute('data-offset-x');
+        target.removeAttribute('data-x');
+        target.removeAttribute('data-y');
+        target.removeAttribute('data-offset-x');
 
-            await handleInteractionEnd(updatedBooking);
-        });
+        await handleInteractionEnd(updatedBooking);
     }
     
     function normalizeDate(date) { const d = new Date(date); return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())); }
@@ -841,70 +717,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function stringToColor(str) { let hash = 0; for (let i = 0; i < str.length; i++) { hash = str.charCodeAt(i) + ((hash << 5) - hash); } let color = '#'; for (let i = 0; i < 3; i++) { const value = (hash >> (i * 8)) & 0xFF; color += ('00' + (Math.floor(value * 0.6) + 70).toString(16)).substr(-2); } return color; }
 
     async function init() {
-        // Synchronizace scrollování mezi sidebar a grid
-        gridWrapper.addEventListener('scroll', () => { 
-            equipmentSidebar.scrollTop = gridWrapper.scrollTop; 
-        });
-        
-        equipmentSidebar.addEventListener('scroll', () => {
-            gridWrapper.scrollTop = equipmentSidebar.scrollTop;
-        });
-        
-        // Equipment modal event listeners
-        document.getElementById('equipment-form').addEventListener('submit', (e) => {
-            e.preventDefault();
-            saveEquipmentChanges();
-        });
-        
-        document.getElementById('cancel-equipment-button').addEventListener('click', hideEquipmentModal);
-        
-        // New equipment modal event listeners
-        document.getElementById('add-equipment-button').addEventListener('click', showNewEquipmentModal);
-        document.getElementById('cancel-new-equipment-button').addEventListener('click', hideNewEquipmentModal);
-        
-        document.getElementById('new-equipment-form').addEventListener('submit', (e) => {
-            e.preventDefault();
-            createNewEquipment();
-        });
-        
-        document.getElementById('add-side-button').addEventListener('click', () => {
-            const sidesContainer = document.getElementById('sides-management');
-            const equipId = document.getElementById('equipment-id').value;
-            const equipRow = allEquipmentRows.find(r => r.id === equipId);
-            
-            if (equipRow) {
-                const baseName = equipRow.base_name;
-                const isClimatic = baseName.toLowerCase().includes('climatic');
-                const spaceLabel = isClimatic ? 'Prostor' : 'Strana';
-                
-                // Najdi nejvyšší číslo strany/prostoru
-                const existingSides = allEquipmentRows.filter(r => r.base_name === baseName);
-                let maxNumber = 0;
-                existingSides.forEach(side => {
-                    const match = side.id.match(new RegExp(`${spaceLabel} (\\d+)`));
-                    if (match) {
-                        maxNumber = Math.max(maxNumber, parseInt(match[1]));
-                    }
-                });
-                
-                const newNumber = maxNumber + 1;
-                const newSideId = `${baseName} - ${spaceLabel} ${newNumber}`;
-                const newSideName = newSideId;
-                
-                // Přidej do allEquipmentRows
-                allEquipmentRows.push({
-                    id: newSideId,
-                    name: newSideName,
-                    status: equipRow.status,
-                    max_tests: 1,
-                    base_name: baseName
-                });
-                
-                // Aktualizuj zobrazení
-                showEquipmentModal(equipRow);
-            }
-        });
-        
+        gridWrapper.addEventListener('scroll', () => { equipmentSidebar.scrollTop = gridWrapper.scrollTop; });
         await fetchData();
         const currentYear = new Date().getFullYear();
         yearDates = getDatesForYear(currentYear);

@@ -33,6 +33,30 @@ def save_bookings(data):
     with open(BOOKINGS_FILE, 'w', encoding='utf-8') as f:
         json.dump(data, f, indent=4, ensure_ascii=False)
 
+def validate_booking_data(booking_data):
+    """Validuje data nové/upravované rezervace."""
+    required_fields = ['equipment_id', 'start_date', 'end_date', 'description']
+    
+    for field in required_fields:
+        if field not in booking_data or not booking_data[field]:
+            return False, f"Chybí povinné pole: {field}"
+    
+    try:
+        start_date = datetime.date.fromisoformat(booking_data['start_date'])
+        end_date = datetime.date.fromisoformat(booking_data['end_date'])
+        
+        if end_date < start_date:
+            return False, "Datum konce nemůže být před datem začátku"
+            
+    except ValueError:
+        return False, "Neplatný formát data"
+    
+    # Kontrola délky description
+    if len(booking_data['description']) > 200:
+        return False, "Popis je příliš dlouhý (max 200 znaků)"
+    
+    return True, ""
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -50,57 +74,129 @@ def get_all_data():
 def check_collision(new_booking, all_bookings, all_equipment):
     """
     Zkontroluje, zda nová rezervace nepřekračuje maximální kapacitu zařízení.
+    Vylepšená verze s lepší podporou pro speciální případy.
     """
     try:
-        # Z kompozitního ID (např. "FASI big - Prostor 1") získáme název hlavního zařízení
-        base_equipment_name = new_booking['equipment_id'].split(' - ')[0].strip()
-        equipment_details = next((e for e in all_equipment if e['name'] == base_equipment_name), None)
+        equipment_id = new_booking['equipment_id']
+        base_equipment_name = equipment_id.split(' - ')[0].strip()
         
-        if not equipment_details: return True 
+        # Najdi zařízení v konfiguraci
+        equipment_details = next((e for e in all_equipment if e['name'] == base_equipment_name), None)
+        if not equipment_details:
+            print(f"VAROVÁNÍ: Neznámé zařízení '{base_equipment_name}'")
+            return True  # Chyba - neznámé zařízení
 
+        # POZOR: Tady použijeme max_tests z JSON jako fallback
+        # V budoucnu by mělo přijít custom nastavení z frontendu
         max_tests = equipment_details.get('max_tests', 1)
-    except (IndexError, KeyError):
+        
+        # Určí jaká equipment_id kontrolovat pro kolize
+        target_equipment_ids = [equipment_id]  # Default: kontroluj pouze stejný prostor
+        
+    except (IndexError, KeyError, AttributeError) as e:
+        print(f"CHYBA při parsování equipment_id: {e}")
         return True
     
+    # Spočítej překrývající se rezervace pro konkrétní equipment_id
     overlapping_count = 0
-    new_start = datetime.date.fromisoformat(new_booking['start_date'])
-    new_end = datetime.date.fromisoformat(new_booking['end_date'])
+    
+    try:
+        new_start = datetime.date.fromisoformat(new_booking['start_date'])
+        new_end = datetime.date.fromisoformat(new_booking['end_date'])
+    except ValueError as e:
+        print(f"CHYBA při parsování datumů: {e}")
+        return True
 
     for booking in all_bookings:
+        # Přeskoč editovanou rezervaci
         if 'id' in new_booking and new_booking['id'] == booking['id']:
             continue
+            
+        # Kontroluj pouze pro STEJNÉ equipment_id (ne celé zařízení)
+        if booking['equipment_id'] == equipment_id:
+            try:
+                existing_start = datetime.date.fromisoformat(booking['start_date'])
+                existing_end = datetime.date.fromisoformat(booking['end_date'])
+                
+                # Kontrola překryvu
+                if max(new_start, existing_start) <= min(new_end, existing_end):
+                    overlapping_count += 1
+            except ValueError:
+                print(f"VAROVÁNÍ: Neplatná data v rezervaci {booking.get('id', 'unknown')}")
+                continue  # Přeskoč neplatná data
 
-        if new_booking['equipment_id'] == booking['equipment_id']:
-            existing_start = datetime.date.fromisoformat(booking['start_date'])
-            existing_end = datetime.date.fromisoformat(booking['end_date'])
-            if max(new_start, existing_start) <= min(new_end, existing_end):
-                overlapping_count += 1
-
+    print(f"DEBUG: {equipment_id} má {overlapping_count} překrývajících rezervací, max_tests={max_tests}")
     return overlapping_count >= max_tests
 
 @app.route('/api/bookings', methods=['POST'])
 def create_booking():
     new_booking_data = request.json
+    
+    # Validace vstupních dat
+    is_valid, error_message = validate_booking_data(new_booking_data)
+    if not is_valid:
+        return jsonify({"error": error_message}), 400
+    
     bookings_data = load_bookings()
     all_equipment = load_equipment()
+    
+    # Získej custom kapacity z frontendu pokud jsou poskytnuty
+    custom_capacities = new_booking_data.get('custom_capacities', {})
+    if custom_capacities:
+        # Aktualizuj max_tests podle custom nastavení
+        equipment_id = new_booking_data['equipment_id']
+        if equipment_id in custom_capacities:
+            # Najdi odpovídající zařízení a aktualizuj jeho kapacitu
+            base_name = equipment_id.split(' - ')[0].strip()
+            for equip in all_equipment:
+                if equip['name'] == base_name:
+                    equip['max_tests'] = custom_capacities[equipment_id]
+                    break
     
     if check_collision(new_booking_data, bookings_data['bookings'], all_equipment):
         return jsonify({"error": "Booking collision detected or capacity exceeded"}), 409
         
     new_id = bookings_data.get('next_booking_id', 101)
     new_booking_data['id'] = new_id
-    bookings_data['bookings'].append(new_booking_data)
+    
+    # Odstranit custom_capacities před uložením
+    booking_to_save = {k: v for k, v in new_booking_data.items() if k != 'custom_capacities'}
+    bookings_data['bookings'].append(booking_to_save)
     bookings_data['next_booking_id'] = new_id + 1
-    save_bookings(bookings_data)
-    return jsonify(new_booking_data), 201
+    
+    try:
+        save_bookings(bookings_data)
+        return jsonify(booking_to_save), 201
+    except Exception as e:
+        print(f"CHYBA při ukládání rezervace: {e}")
+        return jsonify({"error": "Chyba při ukládání rezervace"}), 500
 
 @app.route('/api/bookings/<int:booking_id>', methods=['PUT'])
 def update_booking(booking_id):
     updated_booking_data = request.json
+    
+    # Validace vstupních dat
+    is_valid, error_message = validate_booking_data(updated_booking_data)
+    if not is_valid:
+        return jsonify({"error": error_message}), 400
+    
     bookings_data = load_bookings()
     all_equipment = load_equipment()
 
     updated_booking_data['id'] = booking_id
+    
+    # Získej custom kapacity z frontendu pokud jsou poskytnuty
+    custom_capacities = updated_booking_data.get('custom_capacities', {})
+    if custom_capacities:
+        # Aktualizuj max_tests podle custom nastavení
+        equipment_id = updated_booking_data['equipment_id']
+        if equipment_id in custom_capacities:
+            # Najdi odpovídající zařízení a aktualizuj jeho kapacitu
+            base_name = equipment_id.split(' - ')[0].strip()
+            for equip in all_equipment:
+                if equip['name'] == base_name:
+                    equip['max_tests'] = custom_capacities[equipment_id]
+                    break
 
     if check_collision(updated_booking_data, bookings_data['bookings'], all_equipment):
         return jsonify({"error": "Booking collision detected or capacity exceeded"}), 409
@@ -108,9 +204,15 @@ def update_booking(booking_id):
     booking_index = next((i for i, b in enumerate(bookings_data['bookings']) if b['id'] == booking_id), None)
     
     if booking_index is not None:
-        bookings_data['bookings'][booking_index] = updated_booking_data
-        save_bookings(bookings_data)
-        return jsonify(updated_booking_data)
+        # Odstranit custom_capacities před uložením
+        booking_to_save = {k: v for k, v in updated_booking_data.items() if k != 'custom_capacities'}
+        bookings_data['bookings'][booking_index] = booking_to_save
+        try:
+            save_bookings(bookings_data)
+            return jsonify(booking_to_save)
+        except Exception as e:
+            print(f"CHYBA při aktualizaci rezervace: {e}")
+            return jsonify({"error": "Chyba při ukládání aktualizace"}), 500
     
     return jsonify({"error": "Booking not found"}), 404
 

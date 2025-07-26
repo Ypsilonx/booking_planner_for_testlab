@@ -115,7 +115,7 @@
     "name": "Meas. place Big linak",
     "status": "active",
     "sides": 1,
-    "max_tests": 3,
+    "max_tests": 5,
     "category": "Measuring"
     },
     {

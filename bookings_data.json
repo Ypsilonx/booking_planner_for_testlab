@@ -1,4 +1,53 @@
 {
-    "bookings": [],
-    "next_booking_id": 111
+    "bookings": [
+        {
+            "description": "EU-SVA-123456-25 Calfrest FREEPLAY",
+            "end_date": "2025-07-26",
+            "equipment_id": "Meas. place Big linak",
+            "id": 112,
+            "lane": 0,
+            "start_date": "2025-07-26"
+        },
+        {
+            "description": "EU-SVA-987654-25 STV",
+            "end_date": "2025-07-26",
+            "equipment_id": "Meas. place Big linak",
+            "id": 113,
+            "lane": 0,
+            "start_date": "2025-07-26"
+        },
+        {
+            "description": "EU-SVA-785678-25 dggdfsgsdfgsdf",
+            "end_date": "2025-07-26",
+            "equipment_id": "Meas. place Big linak",
+            "id": 114,
+            "lane": 0,
+            "start_date": "2025-07-26"
+        },
+        {
+            "description": "EU-SVA-785785-25 xfhxfhxhghsdfh",
+            "end_date": "2025-07-26",
+            "equipment_id": "Meas. place Big linak",
+            "id": 115,
+            "lane": 0,
+            "start_date": "2025-07-26"
+        },
+        {
+            "description": "EU-SVA-454545-25 456546456456",
+            "end_date": "2025-07-26",
+            "equipment_id": "Meas. place Big linak",
+            "id": 116,
+            "lane": 0,
+            "start_date": "2025-07-26"
+        },
+        {
+            "description": "EU-SVA-786767-25 746786786",
+            "end_date": "2025-07-26",
+            "equipment_id": "Meas. place Big linak",
+            "id": 117,
+            "lane": 0,
+            "start_date": "2025-07-26"
+        }
+    ],
+    "next_booking_id": 118
 }

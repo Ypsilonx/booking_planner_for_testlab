@@ -31,6 +31,12 @@ body {
     align-items: center;
     flex-shrink: 0;
 }
+
+.header-buttons {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
 .main-container {
     flex-grow: 1;
     padding: 1.5rem;
@@ -62,11 +68,45 @@ body {
     width: var(--sidebar-width);
     flex-shrink: 0;
     background-color: var(--bg-secondary-color);
-    overflow-y: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
     border-right: 1px solid var(--border-color);
     position: sticky;
     left: 0;
     z-index: 15;
+    height: 100%;
+    resize: horizontal; /* Umožní změnu šířky */
+    min-width: 200px;
+    max-width: 500px;
+}
+
+/* Skryj scrollbar ale zachovej funkcionalnost */
+.equipment-sidebar::-webkit-scrollbar {
+    width: 0px;
+    background: transparent;
+}
+
+.equipment-sidebar {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+}
+
+/* Přidej vizuální indikátor pro resize */
+.equipment-sidebar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 4px;
+    height: 100%;
+    background: transparent;
+    cursor: col-resize;
+    z-index: 20;
+}
+
+.equipment-sidebar:hover::after {
+    background: rgba(74, 144, 226, 0.3);
+    transition: background 0.2s ease;
 }
 .sidebar-header {
     height: var(--header-height);
@@ -81,6 +121,107 @@ body {
     border-bottom: 1px solid var(--border-color);
     box-sizing: border-box;
     gap: 0.75rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    min-height: 3rem; /* Minimální výška pro víceřádkový text */
+}
+
+.equipment-item:hover {
+    background-color: var(--bg-color);
+}
+
+.equipment-name {
+    flex-grow: 1;
+    min-width: 0;
+    white-space: normal; /* Povolí zalamování textu */
+    word-wrap: break-word; /* Zalamování dlouhých slov */
+    overflow-wrap: break-word; /* Moderní způsob zalamování */
+    hyphens: auto; /* Automatické dělení slov */
+    line-height: 1.3;
+}
+
+.equipment-name-input {
+    flex-grow: 1;
+    background: var(--bg-color);
+    border: 1px solid var(--btn-primary-bg);
+    color: var(--text-color);
+    padding: 0.25rem 0.5rem;
+    border-radius: 3px;
+    font-size: inherit;
+    font-weight: inherit;
+}
+
+.equipment-name {
+    flex-grow: 1;
+    min-width: 0; /* Pro správné chování text-overflow */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.capacity-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+.capacity-input {
+    width: 40px;
+    padding: 0.25rem;
+    text-align: center;
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 3px;
+    color: var(--text-color);
+    font-size: 0.8rem;
+}
+
+.capacity-btn {
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    background: var(--btn-primary-bg);
+    border: none;
+    border-radius: 3px;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    font-weight: bold;
+}
+
+.capacity-btn:hover {
+    background: var(--btn-primary-hover-bg);
+}
+
+.capacity-btn:disabled {
+    background: #666;
+    cursor: not-allowed;
+}
+
+.whole-equipment-toggle {
+    margin-left: 0.5rem;
+    padding: 0.25rem 0.5rem;
+    background: var(--bg-secondary-color);
+    border: 1px solid var(--border-color);
+    border-radius: 3px;
+    color: var(--text-color);
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.whole-equipment-toggle.active {
+    background: var(--btn-primary-bg);
+    color: white;
+}
+
+.whole-equipment-toggle:hover {
+    background: var(--btn-primary-hover-bg);
+    color: white;
 }
 .timeline-grid {
     display: grid;
@@ -145,6 +286,28 @@ body {
     color: #888;
     margin-left: auto;
     font-weight: 400;
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    border-radius: 3px;
+    transition: background-color 0.2s;
+    min-width: 50px;
+    text-align: center;
+}
+
+.max-tests-info:hover {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+}
+
+.max-tests-input {
+    background: var(--bg-color);
+    border: 1px solid var(--btn-primary-bg);
+    color: var(--text-color);
+    width: 50px;
+    text-align: center;
+    border-radius: 3px;
+    padding: 0.25rem;
+    font-size: 0.75rem;
 }
 
 /* --- ZMĚNA ZDE: Nové styly pro formulář --- */
@@ -175,6 +338,84 @@ body {
     margin-bottom: 0;
     color: var(--text-color);
 }
+
+.form-section {
+    margin: 1.5rem 0;
+    padding: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: var(--bg-color);
+}
+
+.form-section h3 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    color: var(--text-color);
+    font-size: 1rem;
+}
+
+.side-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    padding: 0.5rem;
+    background: var(--bg-secondary-color);
+    border-radius: 4px;
+}
+
+.side-item input {
+    flex-grow: 1;
+    margin-bottom: 0;
+}
+
+.side-item button {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+}
 #booking-eusuva {
     width: 12ch; /* Nastaví šířku na cca 12 znaků */
+}
+
+/* Loading states */
+.btn.loading {
+    opacity: 0.6;
+    cursor: not-allowed;
+    position: relative;
+}
+
+.btn.loading:after {
+    content: "";
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    margin: auto;
+    border: 2px solid transparent;
+    border-top-color: currentColor;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Error states */
+.error-message {
+    background-color: #d32f2f;
+    color: white;
+    padding: 0.75rem;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+    border-left: 4px solid #b71c1c;
+}
+
+.success-message {
+    background-color: #388e3c;
+    color: white;
+    padding: 0.75rem;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+    border-left: 4px solid #2e7d32;
 }

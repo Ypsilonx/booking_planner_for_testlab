@@ -10,12 +10,20 @@
 <body>
     <header class="header">
         <h1>Rezervační systém</h1>
-        <button id="add-test-button" class="btn btn-primary">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
-            </svg>
-            Nový test
-        </button>
+        <div class="header-buttons">
+            <button id="add-equipment-button" class="btn btn-secondary">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
+                </svg>
+                Nové zařízení
+            </button>
+            <button id="add-test-button" class="btn btn-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
+                </svg>
+                Nový test
+            </button>
+        </div>
     </header>
 
     <main class="main-container">
@@ -73,6 +81,90 @@
                     <button type="button" id="delete-button" class="btn btn-danger" style="margin-right: auto;">Smazat</button>
                     <button type="button" id="cancel-button" class="btn btn-secondary">Zrušit</button>
                     <button type="submit" class="btn btn-primary">Uložit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal pro editaci zařízení -->
+    <div id="equipment-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h2 id="equipment-modal-title">Upravit zařízení</h2>
+            <form id="equipment-form">
+                <input type="hidden" id="equipment-id">
+                
+                <div>
+                    <label for="equipment-name">Název zařízení/strany</label>
+                    <input type="text" id="equipment-name" required>
+                </div>
+
+                <div>
+                    <label for="equipment-category">Kategorie</label>
+                    <select id="equipment-category" required>
+                        <option value="">Vyberte kategorii</option>
+                        <option value="Climatic">Climatic</option>
+                        <option value="Durability">Durability</option>
+                        <option value="Measuring">Measuring</option>
+                        <option value="Special Stand">Special Stand</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="equipment-capacity">Kapacita (počet testů)</label>
+                    <input type="number" id="equipment-capacity" min="0" max="10" required>
+                </div>
+
+                <div class="form-section" id="sides-section">
+                    <h3>Správa stran/prostorů</h3>
+                    <div id="sides-management">
+                        <!-- Zde se zobrazí seznam všech stran daného zařízení -->
+                    </div>
+                    <button type="button" id="add-side-button" class="btn btn-secondary">Přidat stranu/prostor</button>
+                </div>
+
+                <div class="modal-buttons">
+                    <button type="button" id="delete-equipment-button" class="btn btn-danger" style="margin-right: auto;">Smazat stranu</button>
+                    <button type="button" id="cancel-equipment-button" class="btn btn-secondary">Zrušit</button>
+                    <button type="submit" class="btn btn-primary">Uložit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal pro přidání nového zařízení -->
+    <div id="new-equipment-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h2>Přidat nové zařízení</h2>
+            <form id="new-equipment-form">
+                <div>
+                    <label for="new-equipment-name">Název zařízení</label>
+                    <input type="text" id="new-equipment-name" required placeholder="Např. Nová klimakomora">
+                </div>
+
+                <div>
+                    <label for="new-equipment-category">Kategorie</label>
+                    <select id="new-equipment-category" required>
+                        <option value="">Vyberte kategorii</option>
+                        <option value="Climatic">Climatic</option>
+                        <option value="Durability">Durability</option>
+                        <option value="Measuring">Measuring</option>
+                        <option value="Special Stand">Special Stand</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="new-equipment-capacity">Kapacita (počet testů)</label>
+                    <input type="number" id="new-equipment-capacity" min="1" max="10" value="1" required>
+                </div>
+
+                <div>
+                    <label for="new-equipment-sides">Počet stran/prostorů</label>
+                    <input type="number" id="new-equipment-sides" min="1" max="4" value="1" required>
+                </div>
+
+                <div class="modal-buttons">
+                    <button type="button" id="cancel-new-equipment-button" class="btn btn-secondary">Zrušit</button>
+                    <button type="submit" class="btn btn-primary">Přidat zařízení</button>
                 </div>
             </form>
         </div>
