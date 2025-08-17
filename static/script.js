@@ -682,11 +682,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 // Aplikuj styly textu
-                if (booking.text_style) {
-                    bookingBar.style.color = booking.text_style.color || '#ffffff';
-                    bookingBar.style.fontSize = booking.text_style.fontSize || '14px';
-                    bookingBar.style.fontWeight = booking.text_style.bold ? 'bold' : 'normal';
-                    bookingBar.style.fontStyle = booking.text_style.italic ? 'italic' : 'normal';
+                let textStyle = booking.text_style;
+                // Pokud je text_style string, parsuj ho
+                if (typeof textStyle === 'string') {
+                    try {
+                        textStyle = JSON.parse(textStyle);
+                    } catch(e) {
+                        textStyle = {};
+                    }
+                }
+                
+                if (textStyle && typeof textStyle === 'object') {
+                    bookingBar.style.color = textStyle.color || '#ffffff';
+                    bookingBar.style.fontSize = textStyle.fontSize || '14px';
+                    bookingBar.style.fontWeight = textStyle.bold ? 'bold' : 'normal';
+                    bookingBar.style.fontStyle = textStyle.italic ? 'italic' : 'normal';
                 } else {
                     // Defaultní styly textu
                     bookingBar.style.color = '#ffffff';

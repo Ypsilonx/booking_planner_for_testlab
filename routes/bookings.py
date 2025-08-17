@@ -11,21 +11,25 @@ def create_booking():
     is_valid, error_message = validate_booking_data(new_booking_data)
     if not is_valid:
         return jsonify({"error": error_message}), 400
+    
     conn = db_connect()
     c = conn.cursor()
     c.execute('SELECT MAX(id) FROM bookings')
     max_id = c.fetchone()[0]
     new_id = (max_id or 100) + 1
     new_booking_data['id'] = new_id
+    
     all_bookings = load_bookings_db()
     all_equipment = load_equipment_db()
     if check_collision(new_booking_data, all_bookings, all_equipment):
         conn.close()
         return jsonify({"error": "Booking collision detected or capacity exceeded"}), 409
-    c.execute('''INSERT INTO bookings (id, description, start_date, end_date, equipment_id, project_name, project_color, note, is_blocker, text_style)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', (
+    
+    c.execute('''INSERT INTO bookings (id, description, tma_number, start_date, end_date, equipment_id, project_name, project_color, note, is_blocker, text_style)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', (
         new_id,
         new_booking_data.get('description'),
+        new_booking_data.get('tma_number'),
         new_booking_data.get('start_date'),
         new_booking_data.get('end_date'),
         new_booking_data.get('equipment_id'),
@@ -45,15 +49,18 @@ def update_booking(booking_id):
     is_valid, error_message = validate_booking_data(updated_booking_data)
     if not is_valid:
         return jsonify({"error": error_message}), 400
+    
     updated_booking_data['id'] = booking_id
     all_bookings = load_bookings_db()
     all_equipment = load_equipment_db()
     if check_collision(updated_booking_data, all_bookings, all_equipment):
         return jsonify({"error": "Booking collision detected or capacity exceeded"}), 409
+    
     conn = db_connect()
     c = conn.cursor()
-    c.execute('''UPDATE bookings SET description=?, start_date=?, end_date=?, equipment_id=?, project_name=?, project_color=?, note=?, is_blocker=?, text_style=? WHERE id=?''', (
+    c.execute('''UPDATE bookings SET description=?, tma_number=?, start_date=?, end_date=?, equipment_id=?, project_name=?, project_color=?, note=?, is_blocker=?, text_style=? WHERE id=?''', (
         updated_booking_data.get('description'),
+        updated_booking_data.get('tma_number'),
         updated_booking_data.get('start_date'),
         updated_booking_data.get('end_date'),
         updated_booking_data.get('equipment_id'),

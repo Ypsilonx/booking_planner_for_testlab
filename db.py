@@ -10,24 +10,45 @@ def db_connect():
 def load_bookings_db():
     conn = db_connect()
     c = conn.cursor()
-    c.execute('SELECT id, description, start_date, end_date, equipment_id, project_name, project_color, note, is_blocker, text_style FROM bookings')
+    c.execute('SELECT id, description, tma_number, start_date, end_date, equipment_id, project_name, project_color, note, is_blocker, text_style FROM bookings')
     rows = c.fetchall()
     bookings = []
     for row in rows:
+        # Parsuj text_style pokud je string, jinak použij prázdný dict
+        text_style = row[10]
+        if isinstance(text_style, str):
+            try:
+                text_style = json.loads(text_style)
+            except:
+                text_style = {}
         bookings.append({
             'id': row[0],
             'description': row[1],
-            'start_date': row[2],
-            'end_date': row[3],
-            'equipment_id': row[4],
-            'project_name': row[5],
-            'project_color': row[6],
-            'note': row[7],
-            'is_blocker': bool(row[8]),
-            'text_style': json.loads(row[9]) if row[9] else {}
+            'tma_number': row[2],
+            'start_date': row[3],
+            'end_date': row[4],
+            'equipment_id': row[5],
+            'project_name': row[6],
+            'project_color': row[7],
+            'note': row[8],
+            'is_blocker': bool(row[9]),
+            'text_style': text_style
         })
     conn.close()
     return bookings
+
+def extract_tma_from_description(description):
+    """Extrahuje TMA číslo z description a vrací (tma_number, clean_description)"""
+    import re
+    tma_regex = r"EU-SVA-\d{6}-\d{2}"
+    tma_match = re.search(tma_regex, description)
+    if tma_match:
+        tma_number = tma_match.group(0)
+        clean_description = description.replace(tma_number, '').strip()
+        # Odstraň případné dvojité mezery a pomlčky na začátku
+        clean_description = re.sub(r'^[-\s]+', '', clean_description)
+        return tma_number, clean_description
+    return None, description
 
 def load_equipment_db():
     conn = db_connect()
@@ -61,16 +82,3 @@ def load_projects_db():
         })
     conn.close()
     return projects
-import sqlite3
-
-def db_connect():
-    return sqlite3.connect('booking_planner.db')
-
-def load_equipment_db():
-    conn = db_connect()
-    c = conn.cursor()
-    c.execute('SELECT name, category, max_tests, sides, status FROM equipment')
-    equipment = [dict(zip(['name', 'category', 'max_tests', 'sides', 'status'], row)) for row in c.fetchall()]
-    conn.close()
-    return equipment
-# ...další utility funkce dle potřeby...
