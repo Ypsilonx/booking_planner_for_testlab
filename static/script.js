@@ -320,18 +320,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function fetchData() {
         try {
-            console.log('Načítám data z API...');
             const response = await fetch('/api/data');
             if (!response.ok) throw new Error(`Chyba při načítání dat: ${response.statusText}`);
             const data = await response.json();
             
-            console.log('Data načtena:', data);
             allEquipmentData = data.equipment || [];
             allBookings = data.bookings || [];
             allProjects = data.projects || [];
             allEquipmentRows = [];
-            
-            console.log('Počet zařízení:', allEquipmentData.length, 'rezervací:', allBookings.length, 'projektů:', allProjects.length);
 
             // Načti custom nastavení
             loadCustomSettings();
@@ -379,9 +375,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
                 }
             });
-            
-            console.log('Celkem equipmentRows:', allEquipmentRows.length);
-        } catch (error) { console.error("Nepodařilo se načíst data:", error); alert("Chyba při komunikaci se serverem."); }
+        } catch (error) { 
+            console.error("Nepodařilo se načíst data:", error); 
+            alert("Chyba při komunikaci se serverem."); 
+        }
     }
 
         async function updateBookingOnServer(bookingData) { 
@@ -458,10 +455,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function performRender() {
-        console.log('Začínám renderování...');
-        console.log('allEquipmentRows.length:', allEquipmentRows.length);
-        console.log('allBookings.length:', allBookings.length);
-        
         const currentHash = getBookingLayoutHash(allBookings);
         let bookingLayout;
         
@@ -1638,8 +1631,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     async function init() {
-        console.log('Inicializuji aplikaci...');
-        
         // Synchronizace scrollování: pouze grid -> sidebar
         // Sidebar NEMÁ vlastní scroll, ale má scrollTop pro synchronizaci
         gridWrapper.addEventListener('scroll', () => { 

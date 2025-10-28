@@ -1,8 +1,20 @@
 # Booking Planner for Test Lab
 
+[![Python](https://img.shields.io/badge/Python-3.8%2B-blue.svg)](https://www.python.org/)
+[![Flask](https://img.shields.io/badge/Flask-3.1.2-green.svg)](https://flask.palletsprojects.com/)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen.svg)]()
+
 ## 📋 Popis projektu
 
 Webová aplikace pro správu rezervací testovacího laboratoře. Umožňuje plánování a organizaci využití testovacích zařízení s podporou blocker rezervací, kapacitního managementu a projektového sledování.
+
+## 📚 Dokumentace
+
+- 🚀 **[Rychlý start](QUICKSTART.md)** - 5minutový návod na zprovoznění
+- ❓ **[FAQ](FAQ.md)** - Často kladené otázky a řešení problémů
+- 🤝 **[Contributing](CONTRIBUTING.md)** - Jak přispívat do projektu
+- 📜 **[License](LICENSE)** - MIT License
 
 ## 🚀 Funkce
 
