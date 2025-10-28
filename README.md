@@ -59,33 +59,64 @@ projects (id, name, description, start_date, end_date)
 
 ### Požadavky
 - Python 3.8+
-- Flask
-- SQLite3 (součást Pythonu)
+- pip (správce balíčků pro Python)
+- Git (volitelné, pro klonování)
 
 ### Rychlé spuštění
+
+#### 1. Klonování projektu
 ```bash
-# 1. Klonování projektu
 git clone <repository-url>
 cd booking_planner_for_testlab
+```
 
-# 2. Instalace závislostí
-pip install flask
+#### 2. Vytvoření virtuálního prostředí (doporučeno)
+**Windows (PowerShell):**
+```powershell
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+```
 
-# 3. Inicializace databáze (pouze první spuštění)
+**Linux/macOS:**
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+
+#### 3. Instalace závislostí
+```bash
+pip install -r requirements.txt
+```
+
+**Nebo ruční instalace:**
+```bash
+pip install flask requests
+```
+
+#### 4. Inicializace databáze (pouze první spuštění)
+```bash
 python db_init.py
+```
 
-# 4. Spuštění aplikace
+#### 5. Spuštění aplikace
+```bash
 python app_main.py
 ```
 
 Aplikace bude dostupná na `http://localhost:5000`
 
-### Migrace z JSON dat
-Pokud máte existující data v JSON souborech:
+### 🔄 Deaktivace virtuálního prostředí
+Po ukončení práce deaktivujte venv:
 ```bash
-# Spusťte migrační script (automaticky extrahuje TMA čísla)
+deactivate
+```
+
+### Migrace z JSON dat
+Pokud máte existující data v JSON souborech (`equipment.json`, `projects.json`):
+```bash
 python db_init.py
 ```
+Script automaticky extrahuje TMA čísla z popisů a vytvoří SQLite databázi.
 
 ## 🔧 API Endpointy
 
@@ -172,22 +203,34 @@ GET    /api/data                  # Kompletní data pro frontend
 ```
 booking_planner_for_testlab/
 ├── README.md                 # Tato dokumentace
-├── app_main.py              # Hlavní aplikace
-├── db.py                    # Databázové funkce
-├── db_init.py               # Migrační script
-├── utils.py                 # Pomocné funkce
-├── booking_planner.db       # SQLite databáze
-├── .gitignore              # Git ignore soubor
-├── routes/                  # API endpointy
-│   ├── bookings.py
-│   ├── equipment.py
-│   └── projects.py
-├── templates/               # HTML templaty
-│   └── index.html
-└── static/                  # CSS, JS soubory
-    ├── style.css
-    └── script.js
+├── requirements.txt          # Python závislosti
+├── .gitignore               # Git ignore soubor
+├── app_main.py              # Hlavní Flask aplikace
+├── db.py                    # Databázové utility funkce
+├── db_init.py               # Migrační script (JSON → SQLite)
+├── utils.py                 # Pomocné funkce (validace, collision detection)
+├── booking_planner.db       # SQLite databáze (generována při prvním spuštění)
+├── venv/                    # Virtuální prostředí (lokální, není v gitu)
+├── routes/                  # API endpointy (Flask Blueprints)
+│   ├── __init__.py
+│   ├── bookings.py          # CRUD operace pro rezervace
+│   ├── equipment.py         # CRUD operace pro zařízení
+│   └── projects.py          # CRUD operace pro projekty
+├── templates/               # Jinja2 HTML templaty
+│   └── index.html           # Hlavní stránka aplikace
+└── static/                  # Statické soubory (CSS, JS)
+    ├── style.css            # Styly aplikace
+    └── script.js            # Frontend JavaScript logika
 ```
+
+### Důležité soubory
+
+- **`requirements.txt`** - Seznam všech Python závislostí s verzemi
+- **`app_main.py`** - Vstupní bod aplikace, registrace blueprintů
+- **`db.py`** - Funkce pro práci s databází (CRUD operace)
+- **`utils.py`** - Validační funkce a logika detekce kolizí
+- **`db_init.py`** - Jednorázový migrační script z JSON do SQLite
+- **`.gitignore`** - Ignoruje `venv/`, `__pycache__/`, `*.db`, atd.
 
 ## 🤝 Přispívání
 
@@ -202,6 +245,9 @@ Pro otázky a podporu kontaktujte správce projektu.
 
 ---
 
-**Vytvořeno:** 2024  
-**Verze:** 2.0 (SQLite + Modular)  
-**Status:** Production Ready ✅
+**Vytvořeno:** 2025  
+**Verze:** 2.0.0 (SQLite + Modular + Virtual Environment)  
+**License:** MIT  
+**Status:** Production Ready ✅  
+**Python:** 3.8+  
+**Framework:** Flask 3.1.2

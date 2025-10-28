@@ -1,3 +1,13 @@
+"""
+Booking Planner for Test Lab - Main Application
+
+Flask application for managing test laboratory equipment bookings.
+Supports multiple projects, equipment capacity management, and blocker reservations.
+
+Author: Your Name
+Version: 2.0.0
+"""
+
 from flask import Flask, render_template, jsonify
 from routes.bookings import bookings_bp
 from routes.projects import projects_bp
@@ -5,7 +15,7 @@ from routes.equipment import equipment_bp
 
 
 app = Flask(__name__)
-app.config['JSON_AS_ASCII'] = False
+app.config['JSON_AS_ASCII'] = False  # Support for Czech characters in JSON
 
 
 @app.route('/')
