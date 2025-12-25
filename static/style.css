@@ -6,8 +6,8 @@
     --text-secondary-color: #b0b0b0;
     --border-color: #444;
     --header-bg-color: #222;
-    --weekend-bg-color: #353535; /* Světlejší šedá pro víkendy */
-    --today-bg-color: rgba(229, 57, 53, 0.15);
+    --weekend-bg-color: #2d2d2d; /* Výraznější tmavší pro víkendy */
+    --today-bg-color: rgba(229, 57, 53, 0.12); /* Decentní červená pro dnešní datum */
     --modal-bg: #2c2c2c;
     --btn-primary-bg: #2962ff;
     --btn-primary-hover-bg: #0039cb;
@@ -392,6 +392,7 @@ body {
 .today { 
     background-color: var(--today-bg-color);
     font-weight: 700;
+    border: 2px solid var(--today-border-color) !important;
 }
 .grid-cell {
     border-right: 1px solid var(--border-color);
@@ -404,20 +405,18 @@ body {
 }
 
 .today.grid-cell { 
-    background-color: var(--today-bg-color); 
+    background-color: var(--today-bg-color);
 }
-
 .booking-bar {
     position: absolute; 
     border-radius: 6px; 
     z-index: 5; 
     display: flex; 
-    align-items: center;
-    padding: 0 8px; /* Zmenšeno z 12px na 8px pro více místa na text */
-    font-size: 0.8rem; /* Zmenšeno z 0.85rem na 0.8rem */
+    flex-direction: column; /* Změna na column pro víceřádkový obsah */
+    justify-content: center;
+    padding: 4px 8px;
+    font-size: 0.75rem;
     overflow: hidden; 
-    text-overflow: ellipsis; 
-    white-space: nowrap;
     cursor: move; 
     transition: background-color 0.2s, box-shadow 0.2s; 
     box-shadow: 0 4px 8px rgba(0,0,0,0.3);
@@ -425,7 +424,26 @@ body {
     user-select: none; 
     touch-action: none; 
     box-sizing: border-box;
-    min-height: 28px; /* Minimální výška pro čitelnost */
+    min-height: 28px;
+}
+
+.booking-bar .booking-main {
+    font-weight: 600;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.2;
+}
+
+.booking-bar .booking-note {
+    font-size: 0.7rem;
+    opacity: 0.85;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.1;
+    margin-top: 2px;
 }
 .booking-bar:hover { box-shadow: 0 6px 12px rgba(0,0,0,0.4); }
 .booking-bar.interact-dragging, .booking-bar.interact-resizing { opacity: 0.7; z-index: 25; transition: none; }

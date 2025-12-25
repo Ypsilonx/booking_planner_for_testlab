@@ -12,7 +12,9 @@ from flask import Flask, render_template, jsonify
 from routes.bookings import bookings_bp
 from routes.projects import projects_bp
 from routes.equipment import equipment_bp
-
+from routes.equipment_mgmt import equipment_mgmt_bp
+from db import load_equipment_db, load_bookings_db, load_projects_db
+from config import APP_HOST, APP_PORT, APP_DEBUG
 
 app = Flask(__name__)
 app.config['JSON_AS_ASCII'] = False  # Support for Czech characters in JSON
@@ -20,25 +22,36 @@ app.config['JSON_AS_ASCII'] = False  # Support for Czech characters in JSON
 
 @app.route('/')
 def index():
+    """Render main application page."""
     return render_template('index.html')
 
-from db import load_equipment_db, load_bookings_db, load_projects_db
 
 @app.route('/api/data')
 def get_all_data():
-    equipment = load_equipment_db()
-    bookings = load_bookings_db()
-    projects = load_projects_db()
-    # bookings už obsahuje tma_number
-    return jsonify({
-        "equipment": equipment,
-        "bookings": bookings,
-        "projects": projects
-    })
+    """
+    Get all application data (equipment, bookings, projects).
+    
+    Returns:
+        JSON response with equipment, bookings, and projects lists
+    """
+    try:
+        equipment = load_equipment_db()
+        bookings = load_bookings_db()
+        projects = load_projects_db()
+        return jsonify({
+            "equipment": equipment,
+            "bookings": bookings,
+            "projects": projects
+        })
+    except Exception as e:
+        return jsonify({"error": f"Chyba při načítání dat: {str(e)}"}), 500
 
+# Register blueprints
 app.register_blueprint(bookings_bp)
 app.register_blueprint(projects_bp)
 app.register_blueprint(equipment_bp)
+app.register_blueprint(equipment_mgmt_bp)
+
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host=APP_HOST, port=APP_PORT, debug=APP_DEBUG)
