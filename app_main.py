@@ -9,10 +9,7 @@ Version: 2.0.0
 """
 
 from flask import Flask, render_template, jsonify
-from routes.bookings import bookings_bp
-from routes.projects import projects_bp
-from routes.equipment import equipment_bp
-from routes.equipment_mgmt import equipment_mgmt_bp
+from routes import bookings_bp, projects_bp, equipment_bp, equipment_mgmt_bp
 from db import load_equipment_db, load_bookings_db, load_projects_db
 from config import APP_HOST, APP_PORT, APP_DEBUG
 
