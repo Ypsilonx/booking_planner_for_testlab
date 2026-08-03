@@ -17,11 +17,11 @@ LEGACY_PROJECTS_FILE = 'projects.json'
 
 # Application settings
 APP_HOST = '0.0.0.0'
-APP_PORT = 5000
+APP_PORT = 5050
 APP_DEBUG = True
 
 # API response configuration
-API_VERSION = '2.0.0'
+API_VERSION = '2.1.0'
 
 # Validation limits
 MAX_DESCRIPTION_LENGTH = 200
