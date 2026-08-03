@@ -132,10 +132,11 @@ dmypy.json
 *.db
 *.sqlite
 *.sqlite3
-booking_planner.db
 
 # IDE files
-.vscode/
+# .vscode/settings.json je sdílený (interpreter path na .venv, viz CLAUDE.md) - commituje se
+.vscode/*
+!.vscode/settings.json
 .idea/
 *.swp
 *.swo
@@ -165,8 +166,3 @@ logs/
 # Node modules (if using any JS build tools)
 node_modules/
 
-# Test files
-test_*.py
-*_test.py
-test_migration.py
-test_api.py

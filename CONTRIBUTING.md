@@ -48,24 +48,17 @@ git checkout -b feature/nova-funkce
 ### Nastavení
 
 ```bash
-# Vytvoř virtuální prostředí
-python -m venv venv
-
-# Aktivuj prostředí
-# Windows:
-.\venv\Scripts\Activate.ps1
-# Linux/macOS:
-source venv/bin/activate
-
-# Nainstaluj dependencies
-pip install -r requirements.txt
+# Vytvoř .venv a nainstaluj dependencies (vyžaduje uv)
+uv sync
 
 # Inicializuj databázi
-python db_init.py
+uv run python db_init.py
 
 # Spusť aplikaci
-python app_main.py
+uv run python app_main.py
 ```
+
+Před spuštěním ověř, že port z `config.py` (`APP_PORT`, výchozí `5050`) není obsazený jinou aplikací: `netstat -ano | findstr :5050`.
 
 ### Recommended Tools
 
@@ -278,8 +271,8 @@ update stuff
 ### Commit Checklist
 
 Před commitem ověř:
-- [ ] Code prošel testem: `python -c "import app_main"`
-- [ ] Žádné syntax errors: `python -m py_compile <file>.py`
+- [ ] Code prošel testem: `uv run python -c "import app_main"`
+- [ ] Žádné syntax errors: `uv run python -m py_compile <file>.py`
 - [ ] Přidány type hints a docstringy
 - [ ] Error handling implementován
 - [ ] Commit message je descriptive
@@ -296,11 +289,11 @@ git fetch upstream
 git rebase upstream/main
 
 # Spusť testy
-python -c "import app_main, db, utils, config"
-python -m py_compile app_main.py db.py utils.py
+uv run python -c "import app_main, db, utils, config"
+uv run python -m py_compile app_main.py db.py utils.py
 
 # Spusť aplikaci a otestuj
-python app_main.py
+uv run python app_main.py
 ```
 
 ### 2. Vytvoření PR

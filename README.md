@@ -52,26 +52,19 @@
 git clone <repository-url>
 cd booking_planner_for_testlab
 
-# 2. Vytvoření virtuálního prostředí
-python -m venv venv
+# 2. Instalace závislostí + vytvoření .venv (vyžaduje uv: https://docs.astral.sh/uv/)
+uv sync
 
-# 3. Aktivace prostředí
-# Windows PowerShell:
-.\venv\Scripts\Activate.ps1
-# Linux/macOS:
-source venv/bin/activate
+# 3. Inicializace databáze
+uv run python db_init.py
 
-# 4. Instalace závislostí
-pip install -r requirements.txt
-
-# 5. Inicializace databáze
-python db_init.py
-
-# 6. Spuštění aplikace
-python app_main.py
+# 4. Spuštění aplikace
+uv run python app_main.py
 ```
 
-**Aplikace běží na:** `http://localhost:5000` 🎉
+**Aplikace běží na:** `http://localhost:5050` 🎉
+
+> Bez uv: `pip install -r requirements.txt` do vlastního venv funguje taky (requirements.txt je generovaný export z `uv.lock`), ale uv je preferovaná cesta.
 
 ### První Kroky
 
@@ -103,81 +96,65 @@ python app_main.py
 
 #### 1️⃣ Příprava Prostředí
 
-**Windows:**
-```powershell
-# Ověření Python instalace
-python --version  # Mělo by vypsat Python 3.8+
+Projekt používá [uv](https://docs.astral.sh/uv/) pro správu virtuálního prostředí a závislostí (`pyproject.toml` + `uv.lock`).
 
-# Vytvoření virtuálního prostředí
-python -m venv venv
+```bash
+# Ověření uv instalace
+uv --version
 
-# Aktivace
-.\venv\Scripts\Activate.ps1
-
-# Řešení problémů s Execution Policy:
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+# Vytvoření .venv a instalace závislostí dle pyproject.toml/uv.lock
+uv sync
 ```
 
-**Linux/macOS:**
+`uv sync` vytvoří `.venv/` a nainstaluje přesné verze z `uv.lock`. Prostředí není potřeba ručně aktivovat – stačí předřadit příkazům `uv run` (např. `uv run python app_main.py`). Pokud chceš prostředí aktivovat ručně jako klasický venv, funguje `.venv\Scripts\Activate.ps1` (Windows) / `source .venv/bin/activate` (Linux/macOS).
+
+**Bez uv** (čistý pip):
 ```bash
-# Ověření Python instalace
-python3 --version
-
-# Vytvoření virtuálního prostředí
-python3 -m venv venv
-
-# Aktivace
-source venv/bin/activate
+python -m venv venv
+# Windows: .\venv\Scripts\Activate.ps1 | Linux/macOS: source venv/bin/activate
+pip install -r requirements.txt
 ```
 
 #### 2️⃣ Instalace Závislostí
 
-**Automatická instalace:**
-```bash
-pip install -r requirements.txt
-```
-
-**Manuální instalace** (pokud requirements.txt chybí):
-```bash
-pip install flask==3.1.2 requests==2.32.5
-```
+Závislosti se instalují automaticky přes `uv sync` (viz výše). Pro přidání/odebrání balíčku používej `uv add <balíček>` / `uv remove <balíček>` – zapíše se do `pyproject.toml` a `uv.lock`, needituj verze ručně. `requirements.txt` je jen odvozený export pro pip (`uv export --no-hashes --no-header --no-annotate -o requirements.txt`).
 
 #### 3️⃣ Inicializace Databáze
 
 ```bash
 # První spuštění - vytvoří prázdnou databázi
-python db_init.py
+uv run python db_init.py
 ```
 
 **Migrace z JSON** (pokud máte legacy data):
 ```bash
 # Umístěte soubory bookings_data.json, equipment.json, projects.json do kořene
-python db_init.py  # Automaticky importuje data
+uv run python db_init.py  # Automaticky importuje data
 ```
 
 #### 4️⃣ Spuštění
 
 **Vývojový režim:**
 ```bash
-python app_main.py
+uv run python app_main.py
 ```
+
+Než server spustíš, ověř, že cílový port (`config.APP_PORT`, výchozí `5050`) není obsazený jinou aplikací:
+```bash
+netstat -ano | grep ":5050"   # prázdný výstup = port je volný
+```
+Symptom obsazeného portu bez chybové hlášky: server se tváří jako běžící, ale requesty končí jako "empty reply"/timeout. Viz [FAQ](#-problémy).
 
 **Produkční režim** (Linux/macOS):
 ```bash
-pip install gunicorn
-gunicorn -w 4 -b 0.0.0.0:5000 app_main:app
+uv add gunicorn
+uv run gunicorn -w 4 -b 0.0.0.0:5050 app_main:app
 ```
 
 **Produkční režim** (Windows):
 ```bash
-pip install waitress
-waitress-serve --host=0.0.0.0 --port=5000 app_main:app
-```
-
-#### 5️⃣ Deaktivace Prostředí
-
-```bash
-deactivate
+uv add waitress
+uv run waitress-serve --host=0.0.0.0 --port=5050 app_main:app
 ```
 
 ---
@@ -252,18 +229,21 @@ deactivate
 ```
 booking_planner_for_testlab/
 │
-├── 📄 config.py              # Centralizovaná konfigurace ⭐ NEW
+├── 📄 pyproject.toml         # Závislosti (zdroj pravdy pro uv) ⭐ NEW
+├── 📄 uv.lock                # Zamčené verze závislostí ⭐ NEW
+├── 📄 config.py              # Centralizovaná konfigurace
 ├── 📄 app_main.py            # Flask aplikace + routing
 ├── 📄 db.py                  # Databázové utility (s type hints)
 ├── 📄 db_init.py             # Migrační script JSON → SQLite
 ├── 📄 utils.py               # Validace + collision detection
-├── 📄 requirements.txt       # Python dependencies
+├── 📄 requirements.txt       # Odvozený export pro pip (generuje se z uv.lock)
 ├── 📊 booking_planner.db     # SQLite databáze (auto-created)
 │
 ├── 📁 routes/                # API Blueprints
 │   ├── __init__.py          # Export blueprintů
 │   ├── bookings.py          # CRUD pro rezervace
-│   ├── equipment.py         # CRUD pro zařízení
+│   ├── equipment.py         # Čtení seznamu zařízení (GET)
+│   ├── equipment_mgmt.py    # CRUD pro zařízení + capacity overrides
 │   └── projects.py          # CRUD pro projekty
 │
 ├── 📁 templates/             # Jinja2 HTML templaty
@@ -273,7 +253,7 @@ booking_planner_for_testlab/
 │   ├── script.js            # Frontend logika (1760 řádků)
 │   └── style.css            # Styling
 │
-└── 📁 venv/                  # Virtual environment (local)
+└── 📁 .venv/                 # Virtual environment (local, vytváří `uv sync`)
 ```
 
 ### Databázové Schéma
@@ -309,6 +289,17 @@ CREATE TABLE projects (
     color TEXT,
     textColor TEXT,
     active INTEGER                -- 0/1 boolean
+);
+
+-- Dočasné přepisy kapacity (viz add_capacity_overrides.py)
+CREATE TABLE equipment_capacity_overrides (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    equipment_name TEXT NOT NULL,
+    start_date TEXT NOT NULL,
+    end_date TEXT NOT NULL,
+    max_tests INTEGER NOT NULL,
+    reason TEXT,
+    FOREIGN KEY (equipment_name) REFERENCES equipment(name)
 );
 ```
 
@@ -418,9 +409,26 @@ Content-Type: application/json
 PUT /api/equipment/{equipment_name}
 ```
 
-**Smazání**
+**Smazání** (smaže i navázané capacity overrides)
 ```http
 DELETE /api/equipment/{equipment_name}
+```
+
+**Dočasný přepis kapacity** (např. víc paralelních testů po dobu údržby jiného zařízení)
+```http
+GET  /api/equipment/capacity-overrides
+POST /api/equipment/{equipment_name}/capacity-overrides
+Content-Type: application/json
+
+{
+  "start_date": "2026-01-01",
+  "end_date": "2026-01-31",
+  "max_tests": 3,
+  "reason": "Dočasné navýšení kapacity"
+}
+```
+```http
+DELETE /api/equipment/capacity-overrides/{override_id}
 ```
 
 ---
@@ -501,24 +509,24 @@ docs: Aktualizace API dokumentace
 **Před commitem:**
 ```bash
 # Import check
-python -c "import app_main, db, utils, config"
+uv run python -c "import app_main, db, utils, config"
 
 # Syntax check
-python -m py_compile app_main.py db.py utils.py
+uv run python -m py_compile app_main.py db.py utils.py
 
 # Spuštění aplikace
-python app_main.py
+uv run python app_main.py
 # Ctrl+C pro ukončení
 ```
 
 **API testy:**
 ```powershell
 # GET test
-Invoke-RestMethod -Uri "http://localhost:5000/api/data" -Method GET
+Invoke-RestMethod -Uri "http://localhost:5050/api/data" -Method GET
 
 # POST test
 $body = @{ description = "Test" } | ConvertTo-Json
-Invoke-RestMethod -Uri "http://localhost:5000/api/bookings" -Method POST -Body $body -ContentType "application/json"
+Invoke-RestMethod -Uri "http://localhost:5050/api/bookings" -Method POST -Body $body -ContentType "application/json"
 ```
 
 ### Přidání Nové Funkce
@@ -553,8 +561,8 @@ A: Stáhněte z [python.org](https://www.python.org/downloads/) a zaškrtněte "
 **Q: Chyba při aktivaci venv (Windows)?**  
 A: Spusťte: `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`
 
-**Q: Port 5000 je obsazený?**  
-A: V `config.py` změňte `APP_PORT = 8080` na jiný port.
+**Q: Port je obsazený ("Address already in use" nebo server "běží", ale requesty nikdy neodpoví)?**  
+A: Výchozí port je `5050` (`config.py` → `APP_PORT`), právě proto, že port `5000` bývá na Windows obsazený jinými aplikacemi (např. Logitech G HUB, Apple AirTunes/AirPlay na macOS). Než server spustíte, ověřte, že je port volný: `netstat -ano | findstr :5050` (prázdný výstup = volno). Pokud je obsazený, buď dohledejte a ukončete vlastníka procesu (`Get-Process -Id <PID>` v PowerShellu – nezabíjejte procesy naslepo přes `taskkill /IM`), nebo v `config.py` nastavte jiný `APP_PORT`.
 
 ### Používání
 
@@ -570,10 +578,10 @@ A: Aktuálně ne (planned feature). Můžete kopírovat `booking_planner.db` neb
 ### Problémy
 
 **Q: Aplikace se nespustí - "Address already in use"?**  
-A: Port je obsazený. Změňte port nebo zastavte process: `netstat -ano | findstr :5000`
+A: Viz [FAQ výše](#-instalace) – zkontrolujte `netstat -ano | findstr :5050` a buď ukončete proces, nebo změňte `APP_PORT`.
 
 **Q: Chyba "No module named 'flask'"?**  
-A: Nainstalujte dependencies: `pip install -r requirements.txt`
+A: Spusťte `uv sync` (nebo `pip install -r requirements.txt`, pokud nepoužíváte uv).
 
 **Q: Rezervace se neuloží?**  
 A: Zkontrolujte konzoli prohlížeče (F12) a terminál serveru pro chybové hlášky.
@@ -599,6 +607,19 @@ A: SQLite zvládne tisíce záznamů. Pro desítky tisíc migrujte na PostgreSQL
 ---
 
 ## 📜 Changelog
+
+### [2.1.0] - 2026-08-03
+
+**Přidáno:**
+- ✅ Správa závislostí přes `uv` (`pyproject.toml`, `uv.lock`) – `requirements.txt` je teď jen odvozený export pro pip
+- ✅ `.vscode/settings.json` (sdílený interpreter path na `.venv`)
+
+**Změněno:**
+- ♻️ Výchozí `APP_PORT` v `config.py`: `5000` → `5050` (kolize s aplikacemi, které si port 5000 běžně zabírají, např. Logitech G HUB)
+
+**Opraveno:**
+- 🐛 Duplicitní route `/api/equipment` (POST/PUT/DELETE) definovaná zároveň v `routes/equipment.py` i `routes/equipment_mgmt.py` – mazání zařízení kvůli tomu nikdy nečistilo navázané `equipment_capacity_overrides`. `equipment.py` teď obsahuje jen GET, zápisové operace výhradně `equipment_mgmt.py`.
+- 🐛 `.gitignore`: odstraněny plošné vzory `test_*.py`/`*_test.py`, které by tiše ignorovaly i budoucí opravdové testy; `.vscode/` upraveno tak, aby se sdílený `settings.json` commitoval
 
 ### [2.0.1] - 2025-12-25
 
@@ -715,5 +736,5 @@ Díky všem přispěvatelům a uživatelům tohoto projektu!
 
 **⭐ Pokud vám projekt pomohl, dejte mu hvězdičku na GitHubu! ⭐**
 
-*Poslední aktualizace: 25. prosince 2025*  
-*Verze: 2.0.1*
+*Poslední aktualizace: 3. srpna 2026*  
+*Verze: 2.1.0*
